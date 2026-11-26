@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Sakuga Onion Extractor v15</title>
+<title>Sakuga Onion v16</title>
 <script src="https://cloudflare.com"></script>
 <style>
 body{margin:0;padding:12px;background:#121215;color:#f0f0f5;font-family:-apple-system,sans-serif;display:flex;flex-direction:column;gap:10px;max-width:960px;margin-inline:auto}
@@ -22,11 +22,11 @@ video{width:72px;height:40px;background:#000;border-radius:4px}
 </head>
 <body>
 <div class="bar">
-  <b>Sakuga Onion v15 <span class="badge">JS Active</span></b>
+  <b>Sakuga Onion v16 <span class="badge">JS Active</span></b>
   <input type="file" id="fileIn" style="max-width:210px;color:#fff">
 </div>
 <div class="status">
-  <span id="st">Ready (v15)! Pick your .mp4 clip above.</span>
+  <span id="st">Ready (v16)! Pick your .mp4 clip above.</span>
   <button id="expBtn" class="blue" disabled>Export PNGs (.zip)</button>
   <video id="vid" playsinline webkit-playsinline muted preload="auto"></video>
 </div>
@@ -99,7 +99,10 @@ async function render(f){
   busy=false;
 }
 
-$("fileIn").onchange=e=>{const f=e.target.files;if(!f)return;clearInterval(tmr);playing=false;$("ply").textContent="Play";$("st").textContent="Loading "+f.name+"...";vid.src=URL.createObjectURL(f);vid.load();};
+function loadVid(f){if(!f)return;clearInterval(tmr);playing=false;$("ply").textContent="Play";$("st").textContent="Loading "+f.name+"...";vid.src=URL.createObjectURL(f);vid.load();}
+$("fileIn").onchange=e=>{if(e.target.files)loadVid(e.target.files.item(0));};
+if($("fileIn").files&&$("fileIn").files.length)loadVid($("fileIn").files.item(0));
+
 vid.onloadedmetadata=async()=>{try{await vid.play();vid.pause();}catch(e){}tot=Math.max(1,Math.floor(vid.duration*fps));cvs.width=cC.width=oC.width=tC.width=vid.videoWidth;cvs.height=cC.height=oC.height=tC.height=vid.videoHeight;$("scb").max=tot-1;["prv","ply","nxt","scb","expBtn"].forEach(id=>$(id).disabled=false);$("st").textContent="Loaded "+vid.videoWidth+"x"+vid.videoHeight+" ("+tot+" frames)";render(0);};
 $("ply").onclick=()=>{if(playing){clearInterval(tmr);playing=false;$("ply").textContent="Play";render(cur);return;}playing=true;$("ply").textContent="Pause";tmr=setInterval(()=>{if(!busy)render((cur+1)%tot);},1000/fps);};
 $("prv").onclick=()=>{clearInterval(tmr);playing=false;$("ply").textContent="Play";render(cur-+$("stp").value);};
