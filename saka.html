@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Sakuga Line Extractor v11</title>
+<title>Sakuga Line Extractor v12</title>
 <script src="https://cloudflare.com"></script>
 <style>
   :root {
@@ -176,7 +176,7 @@
 <body>
 
 <header>
-  <h1>Sakuga Line Extractor v11 <span id="jsBadge" class="badge">JS Off</span></h1>
+  <h1>Sakuga Line Extractor v12 <span id="jsBadge" class="badge">JS Off</span></h1>
   <div class="header-actions">
     <button id="demoBtn" class="demo">Run Test Clip</button>
     <input type="file" id="fileInput" class="native-picker">
@@ -240,15 +240,16 @@ var SLASH = String.fromCharCode(47);
 var DOT = String.fromCharCode(46);
 var COMMA = String.fromCharCode(44);
 var SPACE = String.fromCharCode(32);
+var COLON = String.fromCharCode(58);
 
 var statusText = document.getElementById(/statusText/.source);
 var jsBadge = document.getElementById(/jsBadge/.source);
 jsBadge.textContent = /JS Active/.source;
 jsBadge.className = /badge ok/.source;
-statusText.textContent = /Ready v11 - Tap Run Test Clip or Choose File/.source;
+statusText.textContent = /Ready v12 - Tap Run Test Clip or Choose File/.source;
 
 window.onerror = function(msg, src, line) {
-  statusText.textContent = /JS Error line /.source + line + /: /.source + msg;
+  statusText.textContent = /JS Error line /.source + line + COLON + SPACE + msg;
 };
 
 var demoBtn = document.getElementById(/demoBtn/.source);
@@ -300,8 +301,7 @@ function drawSyntheticDemoFrame(targetCtx, w, h, frameIdx, total) {
 
   var denom = Math.max(1, total - 1);
   var t = (frameIdx / denom) * Math.PI;
-  var x = w * 0.2 + (frameIdx / denom) * (w * 0.6);
-
+var x = w * 0.2 + (frameIdx / denom) * (w * 0.6);
 var bounce = Math.abs(Math.sin(t * 2));
 var y = h * 0.72 - bounce * (h * 0.45);
 var squash = bounce < 0.12 ? 1.25 : 0.92;
