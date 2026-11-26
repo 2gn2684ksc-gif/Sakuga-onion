@@ -13,8 +13,6 @@
     --text: #f0f0f5;
     --muted: #9a9aa8;
     --accent: #3b82f6;
-    --accent-hover: #2563eb;
-    --danger: #ef4444;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
@@ -88,6 +86,7 @@
     border-radius: 8px;
     font-weight: 500;
     pointer-events: none;
+    text-align: center;
   }
 
   .transport {
@@ -175,13 +174,13 @@
 <header>
   <h1>Sakuga Line Extractor & Onion Skin</h1>
   <label class="file-btn">
-    Load Video (.mp4 / .webm)
-    <input type="file" id="fileInput" accept="video/*">
+    Load Video (.mp4 / .mov)
+    <input type="file" id="fileInput">
   </label>
 </header>
 
 <div class="canvas-wrap">
-  <div class="placeholder-msg" id="placeholderMsg">Select a downloaded Sakugabooru video to begin</div>
+  <div class="placeholder-msg" id="placeholderMsg">Select a downloaded Sakugabooru .mp4 video to begin</div>
   <canvas id="previewCanvas"></canvas>
 </div>
 
@@ -231,7 +230,7 @@
   <button id="exportBtn" class="primary" disabled>Export Transparent PNGs (.zip)</button>
 </div>
 
-<video id="video" playsinline muted crossorigin="anonymous"></video>
+<video id="video" playsinline webkit-playsinline muted></video>
 
 <script>
 const fileInput = document.getElementById('fileInput');
@@ -258,7 +257,6 @@ const onionOpVal = document.getElementById('onionOpVal');
 const exportBtn = document.getElementById('exportBtn');
 const statusText = document.getElementById('statusText');
 
-// Offscreen canvases for frame extraction & Sobel processing
 const workCanvas = document.createElement('canvas');
 const workCtx = workCanvas.getContext('2d', { willReadFrequently: true });
 const tempCanvas = document.createElement('canvas');
@@ -271,7 +269,6 @@ let isPlaying = false;
 let isBusy = false;
 let playTimer = null;
 
-// Sobel Edge Extraction -> Transparent PNG ImageData
 function extractLineArt(sourceCanvas, tintRGB = null) {
   const w = sourceCanvas.width;
   const h = sourceCanvas.height;
@@ -282,7 +279,6 @@ function extractLineArt(sourceCanvas, tintRGB = null) {
   const threshold = parseInt(threshSlider.value, 10);
   const gain = parseFloat(gainSlider.value);
 
-  // Convert to grayscale luminance array
   const gray = new Float32Array(w * h);
   for (let i = 0, j = 0; i < src.length; i += 4, j++) {
     gray[j] = 0.299 * src[i] + 0.587 * src[i + 1] + 0.114 * src[i + 2];
@@ -315,17 +311,18 @@ function extractLineArt(sourceCanvas, tintRGB = null) {
         dst[p] = rCol;
         dst[p + 1] = gCol;
         dst[p + 2] = bCol;
-dst[p + 3] = alpha;
-} else {
-dst[p + 3] = 0; // 100% transparent background
+        dst[p + 3] = alpha;
+      } else {
+        dst[p + 3] = 0;
+      }
+    }
+  }
+  return outImg;
 }
-}
-}
-return outImg;
-}
+
 function seekToTime(time) {
-return new Promise((resolve) => {
-const clamped = Math.max(0, Math.min(video.duration - 0.001, time));
+  return new Promise((resolve) => {
+    const clamped = Math.max(0, Math.min(video.duration - 0.001, time));
 if (Math.abs(video.currentTime - clamped) < 0.0005) {
 resolve();
 return;
@@ -349,29 +346,26 @@ const h = previewCanvas.height;
 ctx.clearRect(0, 0, w, h);
 const useOnion = onionToggle.checked && !isPlaying;
 const onionAlpha = parseInt(onionOpSlider.value, 10) / 100;
-// 1. Previous frame onion skin (Red)
 if (useOnion && currentFrame > 0) {
 await seekToTime((currentFrame - 1) / fps);
 workCtx.drawImage(video, 0, 0, w, h);
-const prevLines = extractLineArt(workCanvas, [235, 45, 45]);
+const prevLines = extractLineArt(workCanvas, [220, 38, 38]);
 tempCtx.putImageData(prevLines, 0, 0);
 ctx.save();
 ctx.globalAlpha = onionAlpha;
 ctx.drawImage(tempCanvas, 0, 0);
 ctx.restore();
 }
-// 2. Next frame onion skin (Green)
 if (useOnion && currentFrame < totalFrames - 1) {
 await seekToTime((currentFrame + 1) / fps);
 workCtx.drawImage(video, 0, 0, w, h);
-const nextLines = extractLineArt(workCanvas, [30, 195, 75]);
+const nextLines = extractLineArt(workCanvas, [22, 163, 74]);
 tempCtx.putImageData(nextLines, 0, 0);
 ctx.save();
 ctx.globalAlpha = onionAlpha;
 ctx.drawImage(tempCanvas, 0, 0);
 ctx.restore();
 }
-// 3. Current frame
 await seekToTime(currentFrame / fps);
 workCtx.drawImage(video, 0, 0, w, h);
 if (showOriginal.checked) {
@@ -380,7 +374,7 @@ ctx.globalAlpha = 0.35;
 ctx.drawImage(video, 0, 0, w, h);
 ctx.restore();
 }
-const currLines = extractLineArt(workCanvas, [15, 15, 20]);
+const currLines = extractLineArt(workCanvas, null);
 tempCtx.putImageData(currLines, 0, 0);
 ctx.drawImage(tempCanvas, 0, 0);
 isBusy = false;
@@ -389,9 +383,13 @@ fileInput.addEventListener('change', (e) => {
 const file = e.target.files[0];
 if (!file) return;
 stopPlayback();
+statusText.textContent = Loading ${file.name}...;
 const url = URL.createObjectURL(file);
 video.src = url;
 video.load();
+});
+video.addEventListener('error', () => {
+statusText.textContent = 'Error: Safari cannot decode this video format (if it is .webm, convert it to .mp4 first).';
 });
 video.addEventListener('loadedmetadata', () => {
 fps = parseFloat(fpsSelect.value);
@@ -453,14 +451,12 @@ onionOpVal.textContent = ${onionOpSlider.value}%;
 renderFrame(currentFrame);
 });
 [showOriginal, onionToggle].forEach(el => el.addEventListener('change', () => renderFrame(currentFrame)));
-// Keyboard shortcuts (, and . like Sakugabooru)
 window.addEventListener('keydown', (e) => {
 if (!video.duration) return;
 if (e.key === ',') { stopPlayback(); renderFrame(currentFrame - 1); }
 if (e.key === '.') { stopPlayback(); renderFrame(currentFrame + 1); }
 if (e.key === ' ') { e.preventDefault(); playBtn.click(); }
 });
-// Batch Export Transparent PNGs to ZIP
 exportBtn.addEventListener('click', async () => {
 if (!video.duration || isBusy) return;
 stopPlayback();
@@ -474,7 +470,7 @@ for (let i = 0; i < totalFrames; i++) {
 statusText.textContent = Extracting transparent frame ${i + 1} of ${totalFrames}...;
 await seekToTime(i / fps);
 workCtx.drawImage(video, 0, 0, w, h);
-const lineImg = extractLineArt(workCanvas, [0, 0, 0]);
+const lineImg = extractLineArt(workCanvas, null);
 tempCtx.putImageData(lineImg, 0, 0);
 const blob = await new Promise(res => tempCanvas.toBlob(res, 'image/png'));
 const fileName = frame_${String(i + 1).padStart(4, '0')}.png;
