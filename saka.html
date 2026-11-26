@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Sakuga Line Extractor & Onion Player</title>
+<title>Sakuga Line Extractor v10</title>
 <script src="https://cloudflare.com"></script>
 <style>
   :root {
@@ -57,7 +57,6 @@
     font-size: 0.85rem;
     max-width: 220px;
   }
-
   .top-status {
     display: flex;
     align-items: center;
@@ -77,7 +76,6 @@
     border: 1px solid #334155;
     flex-shrink: 0;
   }
-
   .canvas-wrap {
     position: relative;
     width: 100%;
@@ -98,13 +96,7 @@
     align-items: center;
     justify-content: center;
   }
-  canvas {
-    max-width: 100%;
-    max-height: 100%;
-    width: auto;
-    height: auto;
-    display: block;
-  }
+  canvas { max-width: 100%; max-height: 100%; width: auto; height: auto; display: block; }
   .placeholder-msg {
     position: absolute;
     color: #333;
@@ -116,7 +108,6 @@
     text-align: center;
     font-size: 0.9rem;
   }
-
   .transport {
     display: flex;
     flex-wrap: wrap;
@@ -138,13 +129,11 @@
     cursor: pointer;
     touch-action: manipulation;
   }
-  button:active { transform: scale(0.97); }
   button:disabled { opacity: 0.4; cursor: not-allowed; }
   button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
   button.demo { background: #0d9488; border-color: #0d9488; color: #fff; }
   .scrubber { flex: 1; min-width: 140px; accent-color: var(--accent); height: 28px; }
   .frame-readout { font-variant-numeric: tabular-nums; font-size: 0.88rem; color: var(--muted); min-width: 100px; text-align: right; }
-
   .controls-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -166,8 +155,7 @@
     color: var(--muted);
   }
   .card label span { color: var(--text); font-weight: 600; }
-  select, input { accent-color: var(--accent); }
-  select, .range-input { width: 100%; }
+  select, .range-input { width: 100%; accent-color: var(--accent); }
   select {
     background: #2b2b36;
     color: var(--text);
@@ -182,13 +170,13 @@
     justify-content: space-between;
     font-size: 0.88rem;
   }
-  .chk-input { width: 20px; height: 20px; }
+  .chk-input { width: 20px; height: 20px; accent-color: var(--accent); }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>Sakuga Line Extractor v9 <span id="jsBadge" class="badge">JS Off</span></h1>
+  <h1>Sakuga Line Extractor v10 <span id="jsBadge" class="badge">JS Off</span></h1>
   <div class="header-actions">
     <button id="demoBtn" class="demo">Run Test Clip</button>
     <input type="file" id="fileInput" class="native-picker">
@@ -207,9 +195,9 @@
 </div>
 
 <div class="transport">
-  <button id="prevBtn" disabled>◀ Prev (,)</button>
-  <button id="playBtn" disabled>▶ Play</button>
-  <button id="nextBtn" disabled>Next (.) ▶</button>
+  <button id="prevBtn" disabled>Prev (,)</button>
+  <button id="playBtn" disabled>Play</button>
+  <button id="nextBtn" disabled>Next (.)</button>
   <input type="range" id="scrubber" class="scrubber" min="0" max="0" value="0" disabled>
   <div class="frame-readout" id="frameReadout">Frame 0 / 0</div>
 </div>
@@ -248,199 +236,219 @@
 </div>
 
 <script>
-const statusText = document.getElementById('statusText');
-const jsBadge = document.getElementById('jsBadge');
+var statusText = document.getElementById('statusText');
+var jsBadge = document.getElementById('jsBadge');
 jsBadge.textContent = 'JS Active';
-jsBadge.classList.add('ok');
-statusText.textContent = 'Ready (v9). Tap "Run Test Clip" or pick your .mp4.';
+jsBadge.className = 'badge ok';
+statusText.textContent = 'Ready (v10). Tap Run Test Clip or Choose File.';
 
 window.onerror = function(msg, src, line) {
-  statusText.textContent = 'Error line ' + line + ': ' + msg;
+  statusText.textContent = 'JS Error line ' + line + ': ' + msg;
 };
 
-const demoBtn = document.getElementById('demoBtn');
-const fileInput = document.getElementById('fileInput');
-const video = document.getElementById('video');
-const previewCanvas = document.getElementById('previewCanvas');
-const ctx = previewCanvas.getContext('2d', { willReadFrequently: true });
-const placeholderMsg = document.getElementById('placeholderMsg');
+var demoBtn = document.getElementById('demoBtn');
+var fileInput = document.getElementById('fileInput');
+var video = document.getElementById('video');
+var previewCanvas = document.getElementById('previewCanvas');
+var ctx = previewCanvas.getContext('2d');
+var placeholderMsg = document.getElementById('placeholderMsg');
 
-const prevBtn = document.getElementById('prevBtn');
-const playBtn = document.getElementById('playBtn');
-const nextBtn = document.getElementById('nextBtn');
-const scrubber = document.getElementById('scrubber');
-const frameReadout = document.getElementById('frameReadout');
+var prevBtn = document.getElementById('prevBtn');
+var playBtn = document.getElementById('playBtn');
+var nextBtn = document.getElementById('nextBtn');
+var scrubber = document.getElementById('scrubber');
+var frameReadout = document.getElementById('frameReadout');
 
-const fpsSelect = document.getElementById('fpsSelect');
-const threshSlider = document.getElementById('threshSlider');
-const threshVal = document.getElementById('threshVal');
-const gainSlider = document.getElementById('gainSlider');
-const gainVal = document.getElementById('gainVal');
-const showOriginal = document.getElementById('showOriginal');
-const onionToggle = document.getElementById('onionToggle');
-const onionOpSlider = document.getElementById('onionOpSlider');
-const onionOpVal = document.getElementById('onionOpVal');
-const exportBtn = document.getElementById('exportBtn');
+var fpsSelect = document.getElementById('fpsSelect');
+var threshSlider = document.getElementById('threshSlider');
+var threshVal = document.getElementById('threshVal');
+var gainSlider = document.getElementById('gainSlider');
+var gainVal = document.getElementById('gainVal');
+var showOriginal = document.getElementById('showOriginal');
+var onionToggle = document.getElementById('onionToggle');
+var onionOpSlider = document.getElementById('onionOpSlider');
+var onionOpVal = document.getElementById('onionOpVal');
+var exportBtn = document.getElementById('exportBtn');
 
-const workCanvas = document.createElement('canvas');
-const workCtx = workCanvas.getContext('2d', { willReadFrequently: true });
-const tempCanvas = document.createElement('canvas');
-const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+var workCanvas = document.createElement('canvas');
+var workCtx = workCanvas.getContext('2d');
+var tempCanvas = document.createElement('canvas');
+var tempCtx = tempCanvas.getContext('2d');
 
-let fps = 24;
-let totalFrames = 0;
-let currentFrame = 0;
-let isPlaying = false;
-let isBusy = false;
-let playTimer = null;
-let demoMode = false;
+var fps = 24;
+var totalFrames = 0;
+var currentFrame = 0;
+var isPlaying = false;
+var isBusy = false;
+var playTimer = null;
+var demoMode = false;
 
 function drawSyntheticDemoFrame(targetCtx, w, h, frameIdx, total) {
-  // Full-colour anime-style gradient background (proves background gets stripped!)
-  const grad = targetCtx.createLinearGradient(0, 0, w, h);
+  var grad = targetCtx.createLinearGradient(0, 0, w, h);
   grad.addColorStop(0, '#38bdf8');
   grad.addColorStop(1, '#fef08a');
   targetCtx.fillStyle = grad;
   targetCtx.fillRect(0, 0, w, h);
 
-  // Ground plane
   targetCtx.fillStyle = '#4ade80';
   targetCtx.fillRect(0, h * 0.78, w, h * 0.22);
 
-  // Bouncing character ball with squash & stretch
-  const t = (frameIdx / Math.max(1, total - 1)) * Math.PI;
-  const x = w * 0.2 + (frameIdx / Math.max(1, total - 1)) * (w * 0.6);
-  const bounce = Math.abs(Math.sin(t * 2));
-const y = h * 0.72 - bounce * (h * 0.45);
-const squash = bounce < 0.12 ? 1.25 : 0.92;
-const stretch = 1 / squash;
-targetCtx.save();
-targetCtx.translate(x, y);
-targetCtx.scale(squash, stretch);
-targetCtx.fillStyle = '#f97316';
-targetCtx.strokeStyle = '#111827';
-targetCtx.lineWidth = 4;
-targetCtx.beginPath();
+  var denom = Math.max(1, total - 1);
+  var t = (frameIdx / denom) * Math.PI;
+  var x = w * 0.2 + (frameIdx / denom) * (w * 0.6);
+  var bounce = Math.abs(Math.sin(t * 2));
+  var y = h * 0.72 - bounce * (h * 0.45);
+  var squash = bounce < 0.12 ? 1.25 : 0.92;
+  var stretch = 1 / squash;
+
+  targetCtx.save();
+  targetCtx.translate(x, y);
+  targetCtx.scale(squash, stretch);
+  targetCtx.fillStyle = '#f97316';
+  targetCtx.strokeStyle = '#111827';
+  targetCtx.lineWidth = 4;
+  targetCtx.beginPath();
 targetCtx.arc(0, 0, 34, 0, Math.PI * 2);
 targetCtx.fill();
 targetCtx.stroke();
 targetCtx.restore();
 }
 function extractLineArt(sourceCanvas, rCol, gCol, bCol) {
-const w = sourceCanvas.width;
-const h = sourceCanvas.height;
-const srcImg = workCtx.getImageData(0, 0, w, h);
-const srcView = new DataView(srcImg.data.buffer);
-const outImg = workCtx.createImageData(w, h);
-const dstView = new DataView(outImg.data.buffer);
-const threshold = parseInt(threshSlider.value, 10);
-const gain = parseFloat(gainSlider.value);
-const grayBuf = new ArrayBuffer(w * h * 4);
-const grayView = new DataView(grayBuf);
-const totalPixels = w * h;
-for (let j = 0; j < totalPixels; j++) {
-const p = j * 4;
-const r = srcView.getUint8(p);
-const g = srcView.getUint8(p + 1);
-const b = srcView.getUint8(p + 2);
-const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+var w = sourceCanvas.width;
+var h = sourceCanvas.height;
+var srcImg = workCtx.getImageData(0, 0, w, h);
+var srcView = new DataView(srcImg.data.buffer);
+var outImg = workCtx.createImageData(w, h);
+var dstView = new DataView(outImg.data.buffer);
+var threshold = parseInt(threshSlider.value, 10);
+var gain = parseFloat(gainSlider.value);
+var grayBuf = new ArrayBuffer(w * h * 4);
+var grayView = new DataView(grayBuf);
+var totalPixels = w * h;
+for (var j = 0; j < totalPixels; j++) {
+var p = j * 4;
+var r = srcView.getUint8(p);
+var g = srcView.getUint8(p + 1);
+var b = srcView.getUint8(p + 2);
+var lum = 0.299 * r + 0.587 * g + 0.114 * b;
 grayView.setFloat32(p, lum, true);
 }
-for (let y = 1; y < h - 1; y++) {
-for (let x = 1; x < w - 1; x++) {
-const idx = y * w + x;
-const p = idx * 4;
-const tl = grayView.getFloat32((idx - w - 1) * 4, true);
-const tc = grayView.getFloat32((idx - w) * 4, true);
-const tr = grayView.getFloat32((idx - w + 1) * 4, true);
-const ml = grayView.getFloat32((idx - 1) * 4, true);
-const mr = grayView.getFloat32((idx + 1) * 4, true);
-const bl = grayView.getFloat32((idx + w - 1) * 4, true);
-const bc = grayView.getFloat32((idx + w) * 4, true);
-const br = grayView.getFloat32((idx + w + 1) * 4, true);
-const gx = -tl + tr - 2 * ml + 2 * mr - bl + br;
-const gy = -tl - 2 * tc - tr + bl + 2 * bc + br;
-const mag = Math.sqrt(gx * gx + gy * gy) * 0.25;
+for (var y = 1; y < h - 1; y++) {
+for (var x = 1; x < w - 1; x++) {
+var idx = y * w + x;
+var px = idx * 4;
+var tl = grayView.getFloat32((idx - w - 1) * 4, true);
+var tc = grayView.getFloat32((idx - w) * 4, true);
+var tr = grayView.getFloat32((idx - w + 1) * 4, true);
+var ml = grayView.getFloat32((idx - 1) * 4, true);
+var mr = grayView.getFloat32((idx + 1) * 4, true);
+var bl = grayView.getFloat32((idx + w - 1) * 4, true);
+var bc = grayView.getFloat32((idx + w) * 4, true);
+var br = grayView.getFloat32((idx + w + 1) * 4, true);
+var gx = -tl + tr - 2 * ml + 2 * mr - bl + br;
+var gy = -tl - 2 * tc - tr + bl + 2 * bc + br;
+var mag = Math.sqrt(gx * gx + gy * gy) * 0.25;
 if (mag > threshold) {
-const alpha = Math.min(255, Math.round((mag - threshold) * gain * 2.2));
-dstView.setUint8(p, rCol);
-dstView.setUint8(p + 1, gCol);
-dstView.setUint8(p + 2, bCol);
-dstView.setUint8(p + 3, alpha);
+var alpha = Math.min(255, Math.round((mag - threshold) * gain * 2.2));
+dstView.setUint8(px, rCol);
+dstView.setUint8(px + 1, gCol);
+dstView.setUint8(px + 2, bCol);
+dstView.setUint8(px + 3, alpha);
 } else {
-dstView.setUint8(p + 3, 0);
+dstView.setUint8(px + 3, 0);
 }
 }
 }
 return outImg;
 }
-function seekToTime(time) {
-return new Promise((resolve) => {
-const clamped = Math.max(0, Math.min(video.duration - 0.001, time));
+function seekToTime(time, done) {
+var clamped = Math.max(0, Math.min(video.duration - 0.001, time));
 if (Math.abs(video.currentTime - clamped) < 0.0005 && video.readyState >= 2) {
-resolve();
+done();
 return;
 }
-const timeout = setTimeout(resolve, 400);
-const onSeeked = () => {
-clearTimeout(timeout);
+var timer = setTimeout(function() {
 video.removeEventListener('seeked', onSeeked);
-resolve();
-};
+done();
+}, 450);
+function onSeeked() {
+clearTimeout(timer);
+video.removeEventListener('seeked', onSeeked);
+done();
+}
 video.addEventListener('seeked', onSeeked);
 video.currentTime = clamped;
-});
 }
-async function loadFrameIntoWorkCanvas(frameIdx, w, h) {
+function loadFrameIntoWorkCanvas(frameIdx, w, h, done) {
 if (demoMode) {
 drawSyntheticDemoFrame(workCtx, w, h, frameIdx, totalFrames);
+done();
 } else {
-await seekToTime(frameIdx / fps);
+seekToTime(frameIdx / fps, function() {
 workCtx.drawImage(video, 0, 0, w, h);
+done();
+});
 }
 }
-async function renderFrame(frameIndex) {
+function renderFrame(frameIndex) {
 if ((!video.duration && !demoMode) || isBusy) return;
 isBusy = true;
 currentFrame = Math.max(0, Math.min(totalFrames - 1, frameIndex));
 scrubber.value = currentFrame;
-frameReadout.textContent = Frame ${currentFrame + 1} / ${totalFrames};
-const w = previewCanvas.width;
-const h = previewCanvas.height;
+frameReadout.textContent = 'Frame ' + (currentFrame + 1) + ' / ' + totalFrames;
+var w = previewCanvas.width;
+var h = previewCanvas.height;
 ctx.clearRect(0, 0, w, h);
-const useOnion = onionToggle.checked && !isPlaying;
-const onionAlpha = parseInt(onionOpSlider.value, 10) / 100;
+var useOnion = onionToggle.checked && !isPlaying;
+var onionAlpha = parseInt(onionOpSlider.value, 10) / 100;
+function drawPrev(nextStep) {
 if (useOnion && currentFrame > 0) {
-await loadFrameIntoWorkCanvas(currentFrame - 1, w, h);
-const prevLines = extractLineArt(workCanvas, 239, 68, 68);
+loadFrameIntoWorkCanvas(currentFrame - 1, w, h, function() {
+var prevLines = extractLineArt(workCanvas, 239, 68, 68);
 tempCtx.putImageData(prevLines, 0, 0);
 ctx.save();
 ctx.globalAlpha = onionAlpha;
 ctx.drawImage(tempCanvas, 0, 0);
 ctx.restore();
+nextStep();
+});
+} else {
+nextStep();
 }
+}
+function drawNext(nextStep) {
 if (useOnion && currentFrame < totalFrames - 1) {
-await loadFrameIntoWorkCanvas(currentFrame + 1, w, h);
-const nextLines = extractLineArt(workCanvas, 34, 197, 94);
+loadFrameIntoWorkCanvas(currentFrame + 1, w, h, function() {
+var nextLines = extractLineArt(workCanvas, 34, 197, 94);
 tempCtx.putImageData(nextLines, 0, 0);
 ctx.save();
 ctx.globalAlpha = onionAlpha;
 ctx.drawImage(tempCanvas, 0, 0);
 ctx.restore();
+nextStep();
+});
+} else {
+nextStep();
 }
-await loadFrameIntoWorkCanvas(currentFrame, w, h);
+}
+drawPrev(function() {
+drawNext(function() {
+loadFrameIntoWorkCanvas(currentFrame, w, h, function() {
 if (showOriginal.checked) {
 ctx.save();
 ctx.globalAlpha = 0.35;
 ctx.drawImage(workCanvas, 0, 0, w, h);
 ctx.restore();
 }
-const currLines = extractLineArt(workCanvas, 0, 0, 0);
+var currLines = extractLineArt(workCanvas, 0, 0, 0);
 tempCtx.putImageData(currLines, 0, 0);
 ctx.drawImage(tempCanvas, 0, 0);
 isBusy = false;
+});
+});
+});
 }
-demoBtn.addEventListener('click', () => {
+demoBtn.addEventListener('click', function() {
 stopPlayback();
 demoMode = true;
 fps = parseFloat(fpsSelect.value);
@@ -463,32 +471,30 @@ exportBtn.disabled = false;
 statusText.textContent = 'Test Clip active (24 frames). Red = Prev frame, Green = Next frame!';
 renderFrame(currentFrame);
 });
-function loadFileObject(file) {
-if (!file) return;
+fileInput.addEventListener('change', function(e) {
+if (!e.target.files || e.target.files.length === 0) return;
+var file = e.target.files.item(0);
 stopPlayback();
 demoMode = false;
-statusText.textContent = Loading ${file.name} (${Math.round(file.size / 1024)} KB)...;
-placeholderMsg.textContent = Decoding ${file.name}...;
+statusText.textContent = 'Loading ' + file.name + ' (' + Math.round(file.size / 1024) + ' KB)...';
+placeholderMsg.textContent = 'Decoding ' + file.name + '...';
 placeholderMsg.style.display = 'block';
-const url = URL.createObjectURL(file);
+var url = URL.createObjectURL(file);
 video.src = url;
 video.load();
-}
-fileInput.addEventListener('change', (e) => {
-if (e.target.files && e.target.files.length > 0) {
-loadFileObject(e.target.files.item(0));
-}
 });
-video.addEventListener('error', () => {
-const errCode = video.error ? video.error.code : 'unknown';
-statusText.textContent = Cannot decode video (Code ${errCode}). Convert .webm / VP9 / AV1 to H.264 .mp4 first.;
-placeholderMsg.textContent = 'Unsupported video codec — convert to H.264 .mp4';
+video.addEventListener('error', function() {
+var errCode = video.error ? video.error.code : 'unknown';
+statusText.textContent = 'Cannot decode video (Code ' + errCode + '). Convert .webm / VP9 / AV1 to H.264 .mp4 first.';
+placeholderMsg.textContent = 'Unsupported video codec - convert to H.264 .mp4';
 });
-video.addEventListener('loadedmetadata', async () => {
-statusText.textContent = Metadata ready (${video.videoWidth}x${video.videoHeight}). Decoding frame 1...;
+video.addEventListener('loadedmetadata', function() {
+statusText.textContent = 'Metadata ready (' + video.videoWidth + 'x' + video.videoHeight + '). Decoding...';
 try {
-await video.play();
-video.pause();
+var p = video.play();
+if (p && p.then) {
+p.then(function() { video.pause(); }).catch(function() {});
+}
 } catch (err) {}
 fps = parseFloat(fpsSelect.value);
 totalFrames = Math.max(1, Math.floor(video.duration * fps));
@@ -507,32 +513,32 @@ playBtn.disabled = false;
 nextBtn.disabled = false;
 scrubber.disabled = false;
 exportBtn.disabled = false;
-statusText.textContent = Loaded ${video.videoWidth}×${video.videoHeight} (${totalFrames} frames @ ${fps} fps);
+statusText.textContent = 'Loaded ' + video.videoWidth + 'x' + video.videoHeight + ' (' + totalFrames + ' frames @ ' + fps + ' fps)';
 renderFrame(0);
 });
 function stopPlayback() {
 isPlaying = false;
-playBtn.textContent = '▶ Play';
+playBtn.textContent = 'Play';
 clearInterval(playTimer);
 }
-playBtn.addEventListener('click', () => {
+playBtn.addEventListener('click', function() {
 if (isPlaying) {
 stopPlayback();
 renderFrame(currentFrame);
 return;
 }
 isPlaying = true;
-playBtn.textContent = '❚❚ Pause';
-playTimer = setInterval(() => {
+playBtn.textContent = 'Pause';
+playTimer = setInterval(function() {
 if (isBusy) return;
-const next = (currentFrame + 1) % totalFrames;
+var next = (currentFrame + 1) % totalFrames;
 renderFrame(next);
 }, 1000 / fps);
 });
-prevBtn.addEventListener('click', () => { stopPlayback(); renderFrame(currentFrame - 1); });
-nextBtn.addEventListener('click', () => { stopPlayback(); renderFrame(currentFrame + 1); });
-scrubber.addEventListener('input', () => { stopPlayback(); renderFrame(parseInt(scrubber.value, 10)); });
-fpsSelect.addEventListener('change', () => {
+prevBtn.addEventListener('click', function() { stopPlayback(); renderFrame(currentFrame - 1); });
+nextBtn.addEventListener('click', function() { stopPlayback(); renderFrame(currentFrame + 1); });
+scrubber.addEventListener('input', function() { stopPlayback(); renderFrame(parseInt(scrubber.value, 10)); });
+fpsSelect.addEventListener('change', function() {
 fps = parseFloat(fpsSelect.value);
 if (video.duration && !demoMode) {
 totalFrames = Math.max(1, Math.floor(video.duration * fps));
@@ -540,52 +546,67 @@ scrubber.max = totalFrames - 1;
 renderFrame(Math.min(currentFrame, totalFrames - 1));
 }
 });
-threshSlider.addEventListener('input', () => {
+threshSlider.addEventListener('input', function() {
 threshVal.textContent = threshSlider.value;
 renderFrame(currentFrame);
 });
-gainSlider.addEventListener('input', () => {
-gainVal.textContent = ${parseFloat(gainSlider.value).toFixed(1)}x;
+gainSlider.addEventListener('input', function() {
+gainVal.textContent = parseFloat(gainSlider.value).toFixed(1) + 'x';
 renderFrame(currentFrame);
 });
-onionOpSlider.addEventListener('input', () => {
-onionOpVal.textContent = ${onionOpSlider.value}%;
+onionOpSlider.addEventListener('input', function() {
+onionOpVal.textContent = onionOpSlider.value + '%';
 renderFrame(currentFrame);
 });
-showOriginal.addEventListener('change', () => renderFrame(currentFrame));
-onionToggle.addEventListener('change', () => renderFrame(currentFrame));
-window.addEventListener('keydown', (e) => {
+showOriginal.addEventListener('change', function() { renderFrame(currentFrame); });
+onionToggle.addEventListener('change', function() { renderFrame(currentFrame); });
+window.addEventListener('keydown', function(e) {
 if (!video.duration && !demoMode) return;
 if (e.key === ',') { stopPlayback(); renderFrame(currentFrame - 1); }
 if (e.key === '.') { stopPlayback(); renderFrame(currentFrame + 1); }
 if (e.key === ' ') { e.preventDefault(); playBtn.click(); }
 });
-exportBtn.addEventListener('click', async () => {
+exportBtn.addEventListener('click', function() {
 if ((!video.duration && !demoMode) || isBusy) return;
+if (typeof JSZip === 'undefined') {
+statusText.textContent = 'JSZip library still loading - check internet connection and retry.';
+return;
+}
 stopPlayback();
 isBusy = true;
 exportBtn.disabled = true;
-const zip = new JSZip();
-const folder = zip.folder('sakuga_lines');
-const w = previewCanvas.width;
-const h = previewCanvas.height;
-for (let i = 0; i < totalFrames; i++) {
-statusText.textContent = Extracting frame ${i + 1} of ${totalFrames}...;
-await loadFrameIntoWorkCanvas(i, w, h);
-const lineImg = extractLineArt(workCanvas, 0, 0, 0);
-tempCtx.putImageData(lineImg, 0, 0);
-const blob = await new Promise(res => tempCanvas.toBlob(res, 'image/png'));
-const fileName = frame_${String(i + 1).padStart(4, '0')}.png;
-folder.file(fileName, blob);
-}
+var zip = new JSZip();
+var folder = zip.folder('sakuga_lines');
+var w = previewCanvas.width;
+var h = previewCanvas.height;
+var i = 0;
+function processNext() {
+if (i >= totalFrames) {
 statusText.textContent = 'Compressing .zip file...';
-const zipBlob = await zip.generateAsync({ type: 'blob' });
-const link = document.createElement('a');
+zip.generateAsync({ type: 'blob' }).then(function(zipBlob) {
+var link = document.createElement('a');
 link.href = URL.createObjectURL(zipBlob);
 link.download = 'sakuga_transparent_lines.zip';
 link.click();
-statusText.textContent = Done! Exported ${totalFrames} transparent PNGs.;
+statusText.textContent = 'Done! Exported ' + totalFrames + ' transparent PNGs.';
 exportBtn.disabled = false;
 isBusy = false;
 renderFrame(currentFrame);
+});
+return;
+}
+statusText.textContent = 'Extracting frame ' + (i + 1) + ' of ' + totalFrames + '...';
+loadFrameIntoWorkCanvas(i, w, h, function() {
+var lineImg = extractLineArt(workCanvas, 0, 0, 0);
+tempCtx.putImageData(lineImg, 0, 0);
+tempCanvas.toBlob(function(blob) {
+var num = String(i + 1);
+while (num.length < 4) { num = '0' + num; }
+folder.file('frame_' + num + '.png', blob);
+i++;
+processNext();
+}, 'image/png');
+});
+}
+processNext();
 });
