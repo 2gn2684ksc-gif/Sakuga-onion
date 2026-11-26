@@ -3,38 +3,34 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Sakuga Line Extractor v14</title>
+<title>Sakuga Onion Extractor v15</title>
 <script src="https://cloudflare.com"></script>
 <style>
 body{margin:0;padding:12px;background:#121215;color:#f0f0f5;font-family:-apple-system,sans-serif;display:flex;flex-direction:column;gap:10px;max-width:960px;margin-inline:auto}
 .bar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;background:#1e1e24;padding:10px 14px;border-radius:10px;border:1px solid #2e2e38}
-.badge{font-size:12px;padding:3px 8px;border-radius:99px;background:#dc2626;color:#fff}
-.ok{background:#16a34a}
+.badge{font-size:12px;padding:3px 8px;border-radius:99px;background:#16a34a;color:#fff}
 .status{background:#172033;border:1px solid #2563eb;padding:10px 14px;border-radius:10px;color:#7dd3fc;font-weight:600;font-size:14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
-.wrap{position:relative;width:100%;aspect-ratio:16/9;max-height:48vh;border-radius:10px;overflow:hidden;border:1px solid #2e2e38;display:flex;align-items:center;justify-content:center;background-color:#fff;background-image:linear-gradient(45deg,#e5e5e5 25%,transparent 25%),linear-gradient(-45deg,#e5e5e5 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#e5e5e5 75%),linear-gradient(-45deg,transparent 75%,#e5e5e5 75%);background-size:20px 20px;background-position:0 0,0 10px,10px -10px,-10px 0}
+.wrap{position:relative;width:100%;aspect-ratio:16/9;max-height:50vh;border-radius:10px;overflow:hidden;border:1px solid #2e2e38;display:flex;align-items:center;justify-content:center;background:#ffffff}
+.checker{background-image:linear-gradient(45deg,#e5e5e5 25%,transparent 25%),linear-gradient(-45deg,#e5e5e5 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#e5e5e5 75%),linear-gradient(-45deg,transparent 75%,#e5e5e5 75%);background-size:20px 20px;background-position:0 0,0 10px,10px -10px,-10px 0}
 canvas{max-width:100%;max-height:100%}
 button{background:#2b2b36;color:#fff;border:1px solid #3f3f4e;padding:8px 12px;border-radius:8px;font-weight:600;font-size:14px}
 button:disabled{opacity:.4}
 .blue{background:#3b82f6;border-color:#3b82f6}
-.teal{background:#0d9488;border-color:#0d9488}
-input[type=range]{flex:1;min-width:120px}
+input[type=range]{flex:1;min-width:110px}
 video{width:72px;height:40px;background:#000;border-radius:4px}
 </style>
 </head>
 <body>
 <div class="bar">
-  <b>Sakuga Extractor v14 <span id="bdg" class="badge">JS Off</span></b>
-  <div style="display:flex;gap:8px;align-items:center">
-    <button id="demoBtn" class="teal">Run Test Clip</button>
-    <input type="file" id="fileIn" style="max-width:200px;color:#fff">
-  </div>
+  <b>Sakuga Onion v15 <span class="badge">JS Active</span></b>
+  <input type="file" id="fileIn" style="max-width:210px;color:#fff">
 </div>
 <div class="status">
-  <span id="st">Waiting...</span>
+  <span id="st">Ready (v15)! Pick your .mp4 clip above.</span>
   <button id="expBtn" class="blue" disabled>Export PNGs (.zip)</button>
   <video id="vid" playsinline webkit-playsinline muted preload="auto"></video>
 </div>
-<div class="wrap"><canvas id="cvs"></canvas></div>
+<div class="wrap" id="wrap"><canvas id="cvs"></canvas></div>
 <div class="bar">
   <button id="prv" disabled>Prev</button>
   <button id="ply" disabled>Play</button>
@@ -43,78 +39,81 @@ video{width:72px;height:40px;background:#000;border-radius:4px}
   <span id="fnum">0/0</span>
 </div>
 <div class="bar">
-  <label>FPS <select id="fps"><option value="24" selected>24</option><option value="12">12</option><option value="8">8</option><option value="30">30</option></select></label>
-  <label>Cut <input type="range" id="thr" min="5" max="150" value="45"></label>
-  <label>Gain <input type="range" id="gn" min="0.5" max="3" step="0.1" value="1.4"></label>
+  <label>Mode <select id="mode">
+    <option value="diff" selected>Motion Diff (Best for Anime)</option>
+    <option value="ink">Ink / Genga (Dark Lines)</option>
+    <option value="edge">Edge Outline</option>
+  </select></label>
+  <label>Step <select id="stp"><option value="1">1f</option><option value="2" selected>2f (Twos)</option><option value="3">3f</option></select></label>
+  <label>Cut <input type="range" id="thr" min="5" max="150" value="28"></label>
+  <label>Boost <input type="range" id="gn" min="0.5" max="4" step="0.1" value="2.2"></label>
   <label><input type="checkbox" id="oni" checked> Onion</label>
-  <label><input type="checkbox" id="org"> Original</label>
+  <label><input type="checkbox" id="chkBg"> Grid</label>
 </div>
 <script>
-const $=id=>document.getElementById(id);
-$("bdg").textContent="JS Active";$("bdg").className="badge ok";
-$("st").textContent="Ready (v14)! Tap Run Test Clip or Choose File.";
-window.onerror=(m,s,l)=>{$("st").textContent="Err "+l+": "+m;};
+const $=id=>document.getElementById(id),cvs=$("cvs"),ctx=cvs.getContext("2d"),vid=$("vid");
+const cC=document.createElement("canvas"),cX=cC.getContext("2d"),oC=document.createElement("canvas"),oX=oC.getContext("2d"),tC=document.createElement("canvas"),tX=tC.getContext("2d");
+let fps=24,tot=0,cur=0,playing=false,busy=false,tmr=null;
 
-const cvs=$("cvs"),ctx=cvs.getContext("2d"),vid=$("vid"),wC=document.createElement("canvas"),wX=wC.getContext("2d"),tC=document.createElement("canvas"),tX=tC.getContext("2d");
-let fps=24,tot=0,cur=0,playing=false,busy=false,tmr=null,demo=false;
+const seek=t=>new Promise(r=>{const c=Math.max(0,Math.min(vid.duration-.001,t));if(Math.abs(vid.currentTime-c)<.0005&&vid.readyState>=2)return r();const to=setTimeout(r,400);vid.addEventListener("seeked",()=>{clearTimeout(to);r();},{once:true});vid.currentTime=c;});
 
-function drawDemo(f){
-  const w=cvs.width,h=cvs.height,g=wX.createLinearGradient(0,0,w,h);
-  g.addColorStop(0,"#38bdf8");g.addColorStop(1,"#fef08a");wX.fillStyle=g;wX.fillRect(0,0,w,h);
-  wX.fillStyle="#4ade80";wX.fillRect(0,h*.78,w,h*.22);
-  const d=Math.max(1,tot-1),b=Math.abs(Math.sin((f/d)*Math.PI*2)),x=w*.2+(f/d)*w*.6,y=h*.72-b*h*.45,sq=b<.12?1.25:.92;
-  wX.save();wX.translate(x,y);wX.scale(sq,1/sq);wX.fillStyle="#f97316";wX.strokeStyle="#111";wX.lineWidth=4;
-  wX.beginPath();wX.arc(0,0,34,0,6.29);wX.fill();wX.stroke();wX.restore();
-}
-
-function sobel(rC,gC,bC){
-  const w=cvs.width,h=cvs.height,s=wX.getImageData(0,0,w,h).data,o=wX.createImageData(w,h),d=o.data,th=+$("thr").value,gn=+$("gn").value,gr=new Float32Array(w*h);
-  for(let i=0,j=0;i<s.length;i+=4,j++)gr[j]=.299*s[i]+.587*s[i+1]+.114*s[i+2];
+function extract(srcData,refData,rC,gC,bC,isOnion){
+  const w=cvs.width,h=cvs.height,out=cX.createImageData(w,h),d=out.data,th=+$("thr").value,gn=+$("gn").value,md=$("mode").value;
+  if(isOnion&&md==="diff"&&refData){
+    for(let i=0;i<srcData.length;i+=4){
+      const df=(Math.abs(srcData[i]-refData[i])+Math.abs(srcData[i+1]-refData[i+1])+Math.abs(srcData[i+2]-refData[i+2]))/3;
+      if(df>th){d[i]=rC;d[i+1]=gC;d[i+2]=bC;d[i+3]=Math.min(255,(df-th)*gn*2.5);}
+    }
+    return out;
+  }
+  if(md==="ink"||(!isOnion&&md==="diff")){
+    for(let i=0;i<srcData.length;i+=4){
+      const lum=.299*srcData[i]+.587*srcData[i+1]+.114*srcData[i+2],dark=255-lum;
+      if(dark>th){d[i]=rC;d[i+1]=gC;d[i+2]=bC;d[i+3]=Math.min(255,(dark-th)*gn*1.6);}
+    }
+    return out;
+  }
+  const gr=new Float32Array(w*h);
+  for(let i=0,j=0;i<srcData.length;i+=4,j++)gr[j]=.299*srcData[i]+.587*srcData[i+1]+.114*srcData[i+2];
   for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){
     const i=y*w+x,gx=-gr[i-w-1]+gr[i-w+1]-2*gr[i-1]+2*gr[i+1]-gr[i+w-1]+gr[i+w+1],gy=-gr[i-w-1]-2*gr[i-w]-gr[i-w+1]+gr[i+w-1]+2*gr[i+w]+gr[i+w+1],mg=Math.hypot(gx,gy)*.25,p=i*4;
     if(mg>th){d[p]=rC;d[p+1]=gC;d[p+2]=bC;d[p+3]=Math.min(255,(mg-th)*gn*2.2);}
   }
-  return o;
+  return out;
 }
-
-const seek=t=>new Promise(r=>{const c=Math.max(0,Math.min(vid.duration-.001,t));if(Math.abs(vid.currentTime-c)<.0005&&vid.readyState>=2)return r();const to=setTimeout(r,400);vid.addEventListener("seeked",()=>{clearTimeout(to);r();},{once:true});vid.currentTime=c;});
-async function grab(f){if(demo)drawDemo(f);else{await seek(f/fps);wX.drawImage(vid,0,0,cvs.width,cvs.height);}}
 
 async function render(f){
-  if((!vid.duration&&!demo)||busy)return;busy=true;
+  if(!vid.duration||busy)return;busy=true;
   cur=Math.max(0,Math.min(tot-1,f));$("scb").value=cur;$("fnum").textContent=(cur+1)+"/"+tot;
-  ctx.clearRect(0,0,cvs.width,cvs.height);
+  const w=cvs.width,h=cvs.height,step=+$("stp").value;
+  await seek(cur/fps);cX.drawImage(vid,0,0,w,h);
+  const currPix=cX.getImageData(0,0,w,h).data;
+  ctx.clearRect(0,0,w,h);
   if($("oni").checked&&!playing){
-    if(cur>0){await grab(cur-1);tX.putImageData(sobel(239,68,68),0,0);ctx.globalAlpha=.45;ctx.drawImage(tC,0,0);}
-    if(cur<tot-1){await grab(cur+1);tX.putImageData(sobel(34,197,94),0,0);ctx.globalAlpha=.45;ctx.drawImage(tC,0,0);}
+    if(cur-step>=0){await seek((cur-step)/fps);oX.drawImage(vid,0,0,w,h);tX.putImageData(extract(oX.getImageData(0,0,w,h).data,currPix,239,68,68,true),0,0);ctx.globalAlpha=.65;ctx.drawImage(tC,0,0);}
+    if(cur+step<tot){await seek((cur+step)/fps);oX.drawImage(vid,0,0,w,h);tX.putImageData(extract(oX.getImageData(0,0,w,h).data,currPix,34,197,94,true),0,0);ctx.globalAlpha=.65;ctx.drawImage(tC,0,0);}
   }
-  await grab(cur);ctx.globalAlpha=1;
-  if($("org").checked){ctx.globalAlpha=.35;ctx.drawImage(wC,0,0);ctx.globalAlpha=1;}
-  tX.putImageData(sobel(0,0,0),0,0);ctx.drawImage(tC,0,0);busy=false;
+  ctx.globalAlpha=1;
+  if($("mode").value==="diff"){ctx.drawImage(cC,0,0);}
+  else{tX.putImageData(extract(currPix,null,0,0,0,false),0,0);ctx.drawImage(tC,0,0);}
+  busy=false;
 }
 
-function init(w,h,frames,startF){
-  cvs.width=wC.width=tC.width=w;cvs.height=wC.height=tC.height=h;tot=frames;$("scb").max=tot-1;
-  ["prv","ply","nxt","scb","expBtn"].forEach(id=>$(id).disabled=false);render(startF);
-}
-
-$("demoBtn").onclick=()=>{clearInterval(tmr);playing=false;$("ply").textContent="Play";demo=true;fps=+$("fps").value;$("st").textContent="Test Clip active! Red = Prev, Green = Next.";init(640,360,24,6);};
-$("fileIn").onchange=e=>{const f=e.target.files[0];if(!f)return;clearInterval(tmr);playing=false;demo=false;$("st").textContent="Loading "+f.name+"...";vid.src=URL.createObjectURL(f);vid.load();};
-vid.onerror=()=>{$("st").textContent="Decode error — convert .webm/AV1 to H.264 .mp4 first.";};
-vid.onloadedmetadata=async()=>{try{await vid.play();vid.pause();}catch(e){}fps=+$("fps").value;$("st").textContent="Loaded "+vid.videoWidth+"x"+vid.videoHeight;init(vid.videoWidth,vid.videoHeight,Math.max(1,Math.floor(vid.duration*fps)),0);};
-
+$("fileIn").onchange=e=>{const f=e.target.files;if(!f)return;clearInterval(tmr);playing=false;$("ply").textContent="Play";$("st").textContent="Loading "+f.name+"...";vid.src=URL.createObjectURL(f);vid.load();};
+vid.onloadedmetadata=async()=>{try{await vid.play();vid.pause();}catch(e){}tot=Math.max(1,Math.floor(vid.duration*fps));cvs.width=cC.width=oC.width=tC.width=vid.videoWidth;cvs.height=cC.height=oC.height=tC.height=vid.videoHeight;$("scb").max=tot-1;["prv","ply","nxt","scb","expBtn"].forEach(id=>$(id).disabled=false);$("st").textContent="Loaded "+vid.videoWidth+"x"+vid.videoHeight+" ("+tot+" frames)";render(0);};
 $("ply").onclick=()=>{if(playing){clearInterval(tmr);playing=false;$("ply").textContent="Play";render(cur);return;}playing=true;$("ply").textContent="Pause";tmr=setInterval(()=>{if(!busy)render((cur+1)%tot);},1000/fps);};
-$("prv").onclick=()=>{clearInterval(tmr);playing=false;$("ply").textContent="Play";render(cur-1);};
-$("nxt").onclick=()=>{clearInterval(tmr);playing=false;$("ply").textContent="Play";render(cur+1);};
+$("prv").onclick=()=>{clearInterval(tmr);playing=false;$("ply").textContent="Play";render(cur-+$("stp").value);};
+$("nxt").onclick=()=>{clearInterval(tmr);playing=false;$("ply").textContent="Play";render(cur++$("stp").value);};
 $("scb").oninput=()=>{clearInterval(tmr);playing=false;$("ply").textContent="Play";render(+$("scb").value);};
-["thr","gn","oni","org"].forEach(id=>$(id).oninput=()=>render(cur));
-$("fps").onchange=()=>{fps=+$("fps").value;if(vid.duration&&!demo)init(vid.videoWidth,vid.videoHeight,Math.max(1,Math.floor(vid.duration*fps)),cur);};
+["mode","stp","thr","gn","oni"].forEach(id=>$(id).oninput=()=>render(cur));
+$("chkBg").onchange=()=>$("wrap").classList.toggle("checker",$("chkBg").checked);
 
 $("expBtn").onclick=async()=>{
-  if((!vid.duration&&!demo)||busy)return;clearInterval(tmr);playing=false;busy=true;$("expBtn").disabled=true;
-  const zip=new JSZip(),fld=zip.folder("sakuga_lines");
+  if(!vid.duration||busy)return;clearInterval(tmr);playing=false;busy=true;$("expBtn").disabled=true;
+  const zip=new JSZip(),fld=zip.folder("sakuga_lines"),w=cvs.width,h=cvs.height;
   for(let i=0;i<tot;i++){
-    $("st").textContent="Extracting "+(i+1)+"/"+tot+"...";await grab(i);tX.putImageData(sobel(0,0,0),0,0);
+    $("st").textContent="Exporting "+(i+1)+"/"+tot+"...";await seek(i/fps);cX.drawImage(vid,0,0,w,h);
+    tX.putImageData(extract(cX.getImageData(0,0,w,h).data,null,0,0,0,false),0,0);
     const b=await new Promise(r=>tC.toBlob(r,"image/png"));fld.file("frame_"+String(i+1).padStart(4,"0")+".png",b);
   }
   $("st").textContent="Zipping...";const zb=await zip.generateAsync({type:"blob"}),a=document.createElement("a");
