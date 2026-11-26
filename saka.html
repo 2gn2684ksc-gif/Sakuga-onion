@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Sakuga Line Extractor & Onion Player</title>
+<script src="https://cloudflare.com"></script>
+<style>
+  :root {
+    --bg: #121215;
+    --panel: #1e1e24;
+    --border: #2e2e38;
+    --text: #f0f0f5;
+    --muted: #9a9aa8;
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+    --danger: #ef4444;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    padding: 16px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 1100px;
+    margin-inline: auto;
+  }
+  header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    background: var(--panel);
+    padding: 14px 18px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+  h1 { font-size: 1.1rem; margin: 0; font-weight: 600; }
+  .file-btn {
+    background: var(--accent);
+    color: white;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: inline-block;
+  }
+  input[type="file"] { display: none; }
+
+  .canvas-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    max-height: 60vh;
+    background-color: #ffffff;
+    background-image:
+      linear-gradient(45deg, #e5e5e5 25%, transparent 25%),
+      linear-gradient(-45deg, #e5e5e5 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #e5e5e5 75%),
+      linear-gradient(-45deg, transparent 75%, #e5e5e5 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  canvas {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    display: block;
+  }
+  .placeholder-msg {
+    position: absolute;
+    color: #333;
+    background: rgba(255,255,255,0.9);
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 500;
+    pointer-events: none;
+  }
+
+  .transport {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    background: var(--panel);
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+  button {
+    background: #2b2b36;
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  button:active { transform: scale(0.97); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .scrubber { flex: 1; min-width: 160px; accent-color: var(--accent); height: 28px; }
+  .frame-readout { font-variant-numeric: tabular-nums; font-size: 0.9rem; color: var(--muted); min-width: 110px; text-align: right; }
+
+  .controls-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 14px;
+  }
+  .card {
+    background: var(--panel);
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .card label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .card label span { color: var(--text); font-weight: 600; }
+  select, input[type="range"] { width: 100%; accent-color: var(--accent); }
+  select {
+    background: #2b2b36;
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 8px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+  }
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.9rem;
+  }
+  input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); }
+
+  .export-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: var(--panel);
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+  .status { font-size: 0.9rem; color: var(--muted); }
+  video { display: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Sakuga Line Extractor & Onion Skin</h1>
+  <label class="file-btn">
+    Load Video (.mp4 / .webm)
+    <input type="file" id="fileInput" accept="video/*">
+  </label>
+</header>
+
+<div class="canvas-wrap">
+  <div class="placeholder-msg" id="placeholderMsg">Select a downloaded Sakugabooru video to begin</div>
+  <canvas id="previewCanvas"></canvas>
+</div>
+
+<div class="transport">
+  <button id="prevBtn" disabled>◀ Prev (,)</button>
+  <button id="playBtn" disabled>▶ Play</button>
+  <button id="nextBtn" disabled>Next (.) ▶</button>
+  <input type="range" id="scrubber" class="scrubber" min="0" max="0" value="0" disabled>
+  <div class="frame-readout" id="frameReadout">Frame 0 / 0</div>
+</div>
+
+<div class="controls-grid">
+  <div class="card">
+    <label>Clip Frame Rate (FPS)</label>
+    <select id="fpsSelect">
+      <option value="24" selected>24 fps (Standard Anime)</option>
+      <option value="23.976">23.976 fps (NTSC Film)</option>
+      <option value="12">12 fps (On Twos)</option>
+      <option value="8">8 fps (On Threes)</option>
+      <option value="30">30 fps</option>
+    </select>
+    <label>Line Thickness / Gain <span id="gainVal">1.4x</span></label>
+    <input type="range" id="gainSlider" min="0.5" max="3.0" step="0.1" value="1.4">
+  </div>
+
+  <div class="card">
+    <label>Edge Threshold (Noise Cut) <span id="threshVal">45</span></label>
+    <input type="range" id="threshSlider" min="5" max="150" step="1" value="45">
+    <div class="toggle-row">
+      <span>Show Original Video Underlay</span>
+      <input type="checkbox" id="showOriginal">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="toggle-row">
+      <span>Live Onion Skin (Red / Green)</span>
+      <input type="checkbox" id="onionToggle" checked>
+    </div>
+    <label>Onion Skin Opacity <span id="onionOpVal">45%</span></label>
+    <input type="range" id="onionOpSlider" min="10" max="90" step="5" value="45">
+  </div>
+</div>
+
+<div class="export-bar">
+  <div class="status" id="statusText">Ready. Transparency checkerboard shown behind extracted lines.</div>
+  <button id="exportBtn" class="primary" disabled>Export Transparent PNGs (.zip)</button>
+</div>
+
+<video id="video" playsinline muted crossorigin="anonymous"></video>
+
+<script>
+const fileInput = document.getElementById('fileInput');
+const video = document.getElementById('video');
+const previewCanvas = document.getElementById('previewCanvas');
+const ctx = previewCanvas.getContext('2d', { willReadFrequently: true });
+const placeholderMsg = document.getElementById('placeholderMsg');
+
+const prevBtn = document.getElementById('prevBtn');
+const playBtn = document.getElementById('playBtn');
+const nextBtn = document.getElementById('nextBtn');
+const scrubber = document.getElementById('scrubber');
+const frameReadout = document.getElementById('frameReadout');
+
+const fpsSelect = document.getElementById('fpsSelect');
+const threshSlider = document.getElementById('threshSlider');
+const threshVal = document.getElementById('threshVal');
+const gainSlider = document.getElementById('gainSlider');
+const gainVal = document.getElementById('gainVal');
+const showOriginal = document.getElementById('showOriginal');
+const onionToggle = document.getElementById('onionToggle');
+const onionOpSlider = document.getElementById('onionOpSlider');
+const onionOpVal = document.getElementById('onionOpVal');
+const exportBtn = document.getElementById('exportBtn');
+const statusText = document.getElementById('statusText');
+
+// Offscreen canvases for frame extraction & Sobel processing
+const workCanvas = document.createElement('canvas');
+const workCtx = workCanvas.getContext('2d', { willReadFrequently: true });
+const tempCanvas = document.createElement('canvas');
+const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+
+let fps = 24;
+let totalFrames = 0;
+let currentFrame = 0;
+let isPlaying = false;
+let isBusy = false;
+let playTimer = null;
+
+// Sobel Edge Extraction -> Transparent PNG ImageData
+function extractLineArt(sourceCanvas, tintRGB = null) {
+  const w = sourceCanvas.width;
+  const h = sourceCanvas.height;
+  const src = workCtx.getImageData(0, 0, w, h).data;
+  const outImg = workCtx.createImageData(w, h);
+  const dst = outImg.data;
+
+  const threshold = parseInt(threshSlider.value, 10);
+  const gain = parseFloat(gainSlider.value);
+
+  // Convert to grayscale luminance array
+  const gray = new Float32Array(w * h);
+  for (let i = 0, j = 0; i < src.length; i += 4, j++) {
+    gray[j] = 0.299 * src[i] + 0.587 * src[i + 1] + 0.114 * src[i + 2];
+  }
+
+  const rCol = tintRGB ? tintRGB[0] : 0;
+  const gCol = tintRGB ? tintRGB[1] : 0;
+  const bCol = tintRGB ? tintRGB[2] : 0;
+
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      const idx = y * w + x;
+
+      const tl = gray[idx - w - 1];
+      const tc = gray[idx - w];
+      const tr = gray[idx - w + 1];
+      const ml = gray[idx - 1];
+      const mr = gray[idx + 1];
+      const bl = gray[idx + w - 1];
+      const bc = gray[idx + w];
+      const br = gray[idx + w + 1];
+
+      const gx = -tl + tr - 2 * ml + 2 * mr - bl + br;
+      const gy = -tl - 2 * tc - tr + bl + 2 * bc + br;
+      const mag = Math.sqrt(gx * gx + gy * gy) * 0.25;
+
+      const p = idx * 4;
+      if (mag > threshold) {
+        const alpha = Math.min(255, (mag - threshold) * gain * 2.2);
+        dst[p] = rCol;
+        dst[p + 1] = gCol;
+        dst[p + 2] = bCol;
+dst[p + 3] = alpha;
+} else {
+dst[p + 3] = 0; // 100% transparent background
+}
+}
+}
+return outImg;
+}
+function seekToTime(time) {
+return new Promise((resolve) => {
+const clamped = Math.max(0, Math.min(video.duration - 0.001, time));
+if (Math.abs(video.currentTime - clamped) < 0.0005) {
+resolve();
+return;
+}
+const onSeeked = () => {
+video.removeEventListener('seeked', onSeeked);
+resolve();
+};
+video.addEventListener('seeked', onSeeked);
+video.currentTime = clamped;
+});
+}
+async function renderFrame(frameIndex) {
+if (!video.duration || isBusy) return;
+isBusy = true;
+currentFrame = Math.max(0, Math.min(totalFrames - 1, frameIndex));
+scrubber.value = currentFrame;
+frameReadout.textContent = Frame ${currentFrame + 1} / ${totalFrames};
+const w = previewCanvas.width;
+const h = previewCanvas.height;
+ctx.clearRect(0, 0, w, h);
+const useOnion = onionToggle.checked && !isPlaying;
+const onionAlpha = parseInt(onionOpSlider.value, 10) / 100;
+// 1. Previous frame onion skin (Red)
+if (useOnion && currentFrame > 0) {
+await seekToTime((currentFrame - 1) / fps);
+workCtx.drawImage(video, 0, 0, w, h);
+const prevLines = extractLineArt(workCanvas, [235, 45, 45]);
+tempCtx.putImageData(prevLines, 0, 0);
+ctx.save();
+ctx.globalAlpha = onionAlpha;
+ctx.drawImage(tempCanvas, 0, 0);
+ctx.restore();
+}
+// 2. Next frame onion skin (Green)
+if (useOnion && currentFrame < totalFrames - 1) {
+await seekToTime((currentFrame + 1) / fps);
+workCtx.drawImage(video, 0, 0, w, h);
+const nextLines = extractLineArt(workCanvas, [30, 195, 75]);
+tempCtx.putImageData(nextLines, 0, 0);
+ctx.save();
+ctx.globalAlpha = onionAlpha;
+ctx.drawImage(tempCanvas, 0, 0);
+ctx.restore();
+}
+// 3. Current frame
+await seekToTime(currentFrame / fps);
+workCtx.drawImage(video, 0, 0, w, h);
+if (showOriginal.checked) {
+ctx.save();
+ctx.globalAlpha = 0.35;
+ctx.drawImage(video, 0, 0, w, h);
+ctx.restore();
+}
+const currLines = extractLineArt(workCanvas, [15, 15, 20]);
+tempCtx.putImageData(currLines, 0, 0);
+ctx.drawImage(tempCanvas, 0, 0);
+isBusy = false;
+}
+fileInput.addEventListener('change', (e) => {
+const file = e.target.files[0];
+if (!file) return;
+stopPlayback();
+const url = URL.createObjectURL(file);
+video.src = url;
+video.load();
+});
+video.addEventListener('loadedmetadata', () => {
+fps = parseFloat(fpsSelect.value);
+totalFrames = Math.max(1, Math.floor(video.duration * fps));
+currentFrame = 0;
+previewCanvas.width = video.videoWidth;
+previewCanvas.height = video.videoHeight;
+workCanvas.width = video.videoWidth;
+workCanvas.height = video.videoHeight;
+tempCanvas.width = video.videoWidth;
+tempCanvas.height = video.videoHeight;
+scrubber.max = totalFrames - 1;
+scrubber.value = 0;
+placeholderMsg.style.display = 'none';
+[prevBtn, playBtn, nextBtn, scrubber, exportBtn].forEach(el => el.disabled = false);
+statusText.textContent = Loaded ${video.videoWidth}×${video.videoHeight} (${totalFrames} frames @ ${fps} fps);
+renderFrame(0);
+});
+function stopPlayback() {
+isPlaying = false;
+playBtn.textContent = '▶ Play';
+clearInterval(playTimer);
+}
+playBtn.addEventListener('click', () => {
+if (isPlaying) {
+stopPlayback();
+renderFrame(currentFrame);
+return;
+}
+isPlaying = true;
+playBtn.textContent = '❚❚ Pause';
+playTimer = setInterval(() => {
+if (isBusy) return;
+const next = (currentFrame + 1) % totalFrames;
+renderFrame(next);
+}, 1000 / fps);
+});
+prevBtn.addEventListener('click', () => { stopPlayback(); renderFrame(currentFrame - 1); });
+nextBtn.addEventListener('click', () => { stopPlayback(); renderFrame(currentFrame + 1); });
+scrubber.addEventListener('input', () => { stopPlayback(); renderFrame(parseInt(scrubber.value, 10)); });
+fpsSelect.addEventListener('change', () => {
+fps = parseFloat(fpsSelect.value);
+if (video.duration) {
+totalFrames = Math.max(1, Math.floor(video.duration * fps));
+scrubber.max = totalFrames - 1;
+renderFrame(Math.min(currentFrame, totalFrames - 1));
+}
+});
+threshSlider.addEventListener('input', () => {
+threshVal.textContent = threshSlider.value;
+renderFrame(currentFrame);
+});
+gainSlider.addEventListener('input', () => {
+gainVal.textContent = ${parseFloat(gainSlider.value).toFixed(1)}x;
+renderFrame(currentFrame);
+});
+onionOpSlider.addEventListener('input', () => {
+onionOpVal.textContent = ${onionOpSlider.value}%;
+renderFrame(currentFrame);
+});
+[showOriginal, onionToggle].forEach(el => el.addEventListener('change', () => renderFrame(currentFrame)));
+// Keyboard shortcuts (, and . like Sakugabooru)
+window.addEventListener('keydown', (e) => {
+if (!video.duration) return;
+if (e.key === ',') { stopPlayback(); renderFrame(currentFrame - 1); }
+if (e.key === '.') { stopPlayback(); renderFrame(currentFrame + 1); }
+if (e.key === ' ') { e.preventDefault(); playBtn.click(); }
+});
+// Batch Export Transparent PNGs to ZIP
+exportBtn.addEventListener('click', async () => {
+if (!video.duration || isBusy) return;
+stopPlayback();
+isBusy = true;
+exportBtn.disabled = true;
+const zip = new JSZip();
+const folder = zip.folder('sakuga_lines');
+const w = previewCanvas.width;
+const h = previewCanvas.height;
+for (let i = 0; i < totalFrames; i++) {
+statusText.textContent = Extracting transparent frame ${i + 1} of ${totalFrames}...;
+await seekToTime(i / fps);
+workCtx.drawImage(video, 0, 0, w, h);
+const lineImg = extractLineArt(workCanvas, [0, 0, 0]);
+tempCtx.putImageData(lineImg, 0, 0);
+const blob = await new Promise(res => tempCanvas.toBlob(res, 'image/png'));
+const fileName = frame_${String(i + 1).padStart(4, '0')}.png;
+folder.file(fileName, blob);
+}
+statusText.textContent = 'Compressing .zip file...';
+const zipBlob = await zip.generateAsync({ type: 'blob' });
+const link = document.createElement('a');
+link.href = URL.createObjectURL(zipBlob);
+link.download = 'sakuga_transparent_lines.zip';
+link.click();
+statusText.textContent = Done! Exported ${totalFrames} transparent PNGs.;
+exportBtn.disabled = false;
+isBusy = false;
+renderFrame(currentFrame);
+});
