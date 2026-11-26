@@ -1,650 +1,126 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Sakuga Line Extractor v13</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Sakuga Line Extractor v14</title>
 <script src="https://cloudflare.com"></script>
 <style>
-  :root {
-    --bg: #121215;
-    --panel: #1e1e24;
-    --border: #2e2e38;
-    --text: #f0f0f5;
-    --muted: #9a9aa8;
-    --accent: #3b82f6;
-  }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  body {
-    margin: 0;
-    padding: 12px;
-    background: var(--bg);
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    max-width: 1100px;
-    margin-inline: auto;
-  }
-  header {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-    background: var(--panel);
-    padding: 12px 16px;
-    border-radius: 12px;
-    border: 1px solid var(--border);
-  }
-  h1 { font-size: 1.05rem; margin: 0; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-  .badge {
-    font-size: 0.75rem;
-    padding: 3px 8px;
-    border-radius: 99px;
-    background: #dc2626;
-    color: #fff;
-  }
-  .badge.ok { background: #16a34a; }
-  .header-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-  .native-picker {
-    background: #2b2b36;
-    color: var(--text);
-    padding: 7px 10px;
-    border-radius: 8px;
-    border: 1px solid var(--accent);
-    font-size: 0.85rem;
-    max-width: 220px;
-  }
-  .top-status {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    background: #172033;
-    border: 1px solid #2563eb;
-    padding: 10px 14px;
-    border-radius: 10px;
-  }
-  .status { font-size: 0.88rem; color: #7dd3fc; font-weight: 600; word-break: break-word; }
-  #video {
-    width: 80px;
-    height: 45px;
-    background: #000;
-    border-radius: 4px;
-    border: 1px solid #334155;
-    flex-shrink: 0;
-  }
-  .canvas-wrap {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    max-height: 48vh;
-    background-color: #ffffff;
-    background-image:
-      linear-gradient(45deg, #e5e5e5 25%, transparent 25%),
-      linear-gradient(-45deg, #e5e5e5 25%, transparent 25%),
-      linear-gradient(45deg, transparent 75%, #e5e5e5 75%),
-      linear-gradient(-45deg, transparent 75%, #e5e5e5 75%);
-    background-size: 20px 20px;
-    background-position: 0 0, 0 10px, 10px -10px, -10px 0;
-    border-radius: 12px;
-    overflow: hidden;
-    border: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  canvas { max-width: 100%; max-height: 100%; width: auto; height: auto; display: block; }
-  .placeholder-msg {
-    position: absolute;
-    color: #333;
-    background: rgba(255,255,255,0.92);
-    padding: 10px 16px;
-    border-radius: 8px;
-    font-weight: 600;
-    pointer-events: none;
-    text-align: center;
-    font-size: 0.9rem;
-  }
-  .transport {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    background: var(--panel);
-    padding: 10px 14px;
-    border-radius: 12px;
-    border: 1px solid var(--border);
-  }
-  button {
-    background: #2b2b36;
-    color: var(--text);
-    border: 1px solid var(--border);
-    padding: 9px 13px;
-    border-radius: 8px;
-    font-size: 0.88rem;
-    font-weight: 600;
-    cursor: pointer;
-    touch-action: manipulation;
-  }
-  button:disabled { opacity: 0.4; cursor: not-allowed; }
-  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-  button.demo { background: #0d9488; border-color: #0d9488; color: #fff; }
-  .scrubber { flex: 1; min-width: 140px; accent-color: var(--accent); height: 28px; }
-  .frame-readout { font-variant-numeric: tabular-nums; font-size: 0.88rem; color: var(--muted); min-width: 100px; text-align: right; }
-  .controls-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 10px;
-  }
-  .card {
-    background: var(--panel);
-    padding: 12px 14px;
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .card label {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.82rem;
-    color: var(--muted);
-  }
-  .card label span { color: var(--text); font-weight: 600; }
-  select, .range-input { width: 100%; accent-color: var(--accent); }
-  select {
-    background: #2b2b36;
-    color: var(--text);
-    border: 1px solid var(--border);
-    padding: 7px;
-    border-radius: 6px;
-    font-size: 0.88rem;
-  }
-  .toggle-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 0.88rem;
-  }
-  .chk-input { width: 20px; height: 20px; accent-color: var(--accent); }
+body{margin:0;padding:12px;background:#121215;color:#f0f0f5;font-family:-apple-system,sans-serif;display:flex;flex-direction:column;gap:10px;max-width:960px;margin-inline:auto}
+.bar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;background:#1e1e24;padding:10px 14px;border-radius:10px;border:1px solid #2e2e38}
+.badge{font-size:12px;padding:3px 8px;border-radius:99px;background:#dc2626;color:#fff}
+.ok{background:#16a34a}
+.status{background:#172033;border:1px solid #2563eb;padding:10px 14px;border-radius:10px;color:#7dd3fc;font-weight:600;font-size:14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.wrap{position:relative;width:100%;aspect-ratio:16/9;max-height:48vh;border-radius:10px;overflow:hidden;border:1px solid #2e2e38;display:flex;align-items:center;justify-content:center;background-color:#fff;background-image:linear-gradient(45deg,#e5e5e5 25%,transparent 25%),linear-gradient(-45deg,#e5e5e5 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#e5e5e5 75%),linear-gradient(-45deg,transparent 75%,#e5e5e5 75%);background-size:20px 20px;background-position:0 0,0 10px,10px -10px,-10px 0}
+canvas{max-width:100%;max-height:100%}
+button{background:#2b2b36;color:#fff;border:1px solid #3f3f4e;padding:8px 12px;border-radius:8px;font-weight:600;font-size:14px}
+button:disabled{opacity:.4}
+.blue{background:#3b82f6;border-color:#3b82f6}
+.teal{background:#0d9488;border-color:#0d9488}
+input[type=range]{flex:1;min-width:120px}
+video{width:72px;height:40px;background:#000;border-radius:4px}
 </style>
 </head>
 <body>
-
-<div id="cfg" hidden
-  data-ok="badge ok"
-  data-act="JS Active"
-  data-rdy="Ready v13 - Tap Run Test Clip or Choose File"
-  data-c2d="2d"
-  data-cvs="canvas"
-  data-clk="click"
-  data-chg="change"
-  data-err="error"
-  data-meta="loadedmetadata"
-  data-skd="seeked"
-  data-inp="input"
-  data-kdn="keydown"
-  data-none="none"
-  data-blk="block"
-  data-g1="#38bdf8"
-  data-g2="#fef08a"
-  data-grn="#4ade80"
-  data-org="#f97316"
-  data-drk="#111827"
-  data-frm="Frame "
-  data-slh=" / "
-  data-dem="Test Clip active - Red is Prev, Green is Next"
-  data-ld="Loading "
-  data-dc="Decoding "
-  data-bad="Unsupported video codec - convert webm to H264 mp4"
-  data-mrd="Metadata ready - Decoding frame 1"
-  data-lod="Loaded "
-  data-ply="Play"
-  data-pau="Pause"
-  data-und="undefined"
-  data-noz="JSZip still loading - check internet and retry"
-  data-cmp="Compressing zip file..."
-  data-zip="blob"
-  data-taga="a"
-  data-out="sakuga_transparent_lines.zip"
-  data-don="Done - Exported "
-  data-ext="Extracting frame "
-  data-of=" of "
-  data-fld="sakuga_lines"
-  data-fpre="frame_"
-  data-fext=".png"
-  data-mime="image/png"></div>
-
-<header>
-  <h1>Sakuga Line Extractor v13 <span id="jsBadge" class="badge">JS Off</span></h1>
-  <div class="header-actions">
-    <button id="demoBtn" class="demo">Run Test Clip</button>
-    <input type="file" id="fileInput" class="native-picker">
-  </div>
-</header>
-
-<div class="top-status">
-  <div class="status" id="statusText">Waiting for script...</div>
-  <button id="exportBtn" class="primary" disabled>Export PNGs (.zip)</button>
-  <video id="video" playsinline webkit-playsinline muted preload="auto"></video>
-</div>
-
-<div class="canvas-wrap">
-  <div class="placeholder-msg" id="placeholderMsg">Tap Run Test Clip or Choose File above</div>
-  <canvas id="previewCanvas"></canvas>
-</div>
-
-<div class="transport">
-  <button id="prevBtn" disabled>Prev (,)</button>
-  <button id="playBtn" disabled>Play</button>
-  <button id="nextBtn" disabled>Next (.)</button>
-  <input type="range" id="scrubber" class="scrubber" min="0" max="0" value="0" disabled>
-  <div class="frame-readout" id="frameReadout">Frame 0 / 0</div>
-</div>
-
-<div class="controls-grid">
-  <div class="card">
-    <label>Clip Frame Rate (FPS)</label>
-    <select id="fpsSelect">
-      <option value="24" selected>24 fps (Standard Anime)</option>
-      <option value="23.976">23.976 fps (NTSC Film)</option>
-      <option value="12">12 fps (On Twos)</option>
-      <option value="8">8 fps (On Threes)</option>
-      <option value="30">30 fps</option>
-    </select>
-    <label>Line Thickness / Gain <span id="gainVal">1.4x</span></label>
-    <input type="range" id="gainSlider" class="range-input" min="0.5" max="3.0" step="0.1" value="1.4">
-  </div>
-
-  <div class="card">
-    <label>Edge Threshold (Noise Cut) <span id="threshVal">45</span></label>
-    <input type="range" id="threshSlider" class="range-input" min="5" max="150" step="1" value="45">
-    <div class="toggle-row">
-      <span>Show Original Video Underlay</span>
-      <input type="checkbox" id="showOriginal" class="chk-input">
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="toggle-row">
-      <span>Live Onion Skin (Red / Green)</span>
-      <input type="checkbox" id="onionToggle" class="chk-input" checked>
-    </div>
-    <label>Onion Skin Opacity <span id="onionOpVal">45%</span></label>
-    <input type="range" id="onionOpSlider" class="range-input" min="10" max="90" step="5" value="45">
+<div class="bar">
+  <b>Sakuga Extractor v14 <span id="bdg" class="badge">JS Off</span></b>
+  <div style="display:flex;gap:8px;align-items:center">
+    <button id="demoBtn" class="teal">Run Test Clip</button>
+    <input type="file" id="fileIn" style="max-width:200px;color:#fff">
   </div>
 </div>
-
+<div class="status">
+  <span id="st">Waiting...</span>
+  <button id="expBtn" class="blue" disabled>Export PNGs (.zip)</button>
+  <video id="vid" playsinline webkit-playsinline muted preload="auto"></video>
+</div>
+<div class="wrap"><canvas id="cvs"></canvas></div>
+<div class="bar">
+  <button id="prv" disabled>Prev</button>
+  <button id="ply" disabled>Play</button>
+  <button id="nxt" disabled>Next</button>
+  <input type="range" id="scb" min="0" max="0" value="0" disabled>
+  <span id="fnum">0/0</span>
+</div>
+<div class="bar">
+  <label>FPS <select id="fps"><option value="24" selected>24</option><option value="12">12</option><option value="8">8</option><option value="30">30</option></select></label>
+  <label>Cut <input type="range" id="thr" min="5" max="150" value="45"></label>
+  <label>Gain <input type="range" id="gn" min="0.5" max="3" step="0.1" value="1.4"></label>
+  <label><input type="checkbox" id="oni" checked> Onion</label>
+  <label><input type="checkbox" id="org"> Original</label>
+</div>
 <script>
-var d = document.getElementById(String.fromCharCode(99,102,103)).dataset;
-var statusText = document.getElementById(String.fromCharCode(115,116,97,116,117,115,84,101,120,116));
-var jsBadge = document.getElementById(String.fromCharCode(106,115,66,97,100,103,101));
-jsBadge.textContent = d.act;
-jsBadge.className = d.ok;
-statusText.textContent = d.rdy;
+const $=id=>document.getElementById(id);
+$("bdg").textContent="JS Active";$("bdg").className="badge ok";
+$("st").textContent="Ready (v14)! Tap Run Test Clip or Choose File.";
+window.onerror=(m,s,l)=>{$("st").textContent="Err "+l+": "+m;};
 
-window.onerror = function(msg, src, line) {
-  statusText.textContent = line + String.fromCharCode(58,32) + msg;
+const cvs=$("cvs"),ctx=cvs.getContext("2d"),vid=$("vid"),wC=document.createElement("canvas"),wX=wC.getContext("2d"),tC=document.createElement("canvas"),tX=tC.getContext("2d");
+let fps=24,tot=0,cur=0,playing=false,busy=false,tmr=null,demo=false;
+
+function drawDemo(f){
+  const w=cvs.width,h=cvs.height,g=wX.createLinearGradient(0,0,w,h);
+  g.addColorStop(0,"#38bdf8");g.addColorStop(1,"#fef08a");wX.fillStyle=g;wX.fillRect(0,0,w,h);
+  wX.fillStyle="#4ade80";wX.fillRect(0,h*.78,w,h*.22);
+  const d=Math.max(1,tot-1),b=Math.abs(Math.sin((f/d)*Math.PI*2)),x=w*.2+(f/d)*w*.6,y=h*.72-b*h*.45,sq=b<.12?1.25:.92;
+  wX.save();wX.translate(x,y);wX.scale(sq,1/sq);wX.fillStyle="#f97316";wX.strokeStyle="#111";wX.lineWidth=4;
+  wX.beginPath();wX.arc(0,0,34,0,6.29);wX.fill();wX.stroke();wX.restore();
+}
+
+function sobel(rC,gC,bC){
+  const w=cvs.width,h=cvs.height,s=wX.getImageData(0,0,w,h).data,o=wX.createImageData(w,h),d=o.data,th=+$("thr").value,gn=+$("gn").value,gr=new Float32Array(w*h);
+  for(let i=0,j=0;i<s.length;i+=4,j++)gr[j]=.299*s[i]+.587*s[i+1]+.114*s[i+2];
+  for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){
+    const i=y*w+x,gx=-gr[i-w-1]+gr[i-w+1]-2*gr[i-1]+2*gr[i+1]-gr[i+w-1]+gr[i+w+1],gy=-gr[i-w-1]-2*gr[i-w]-gr[i-w+1]+gr[i+w-1]+2*gr[i+w]+gr[i+w+1],mg=Math.hypot(gx,gy)*.25,p=i*4;
+    if(mg>th){d[p]=rC;d[p+1]=gC;d[p+2]=bC;d[p+3]=Math.min(255,(mg-th)*gn*2.2);}
+  }
+  return o;
+}
+
+const seek=t=>new Promise(r=>{const c=Math.max(0,Math.min(vid.duration-.001,t));if(Math.abs(vid.currentTime-c)<.0005&&vid.readyState>=2)return r();const to=setTimeout(r,400);vid.addEventListener("seeked",()=>{clearTimeout(to);r();},{once:true});vid.currentTime=c;});
+async function grab(f){if(demo)drawDemo(f);else{await seek(f/fps);wX.drawImage(vid,0,0,cvs.width,cvs.height);}}
+
+async function render(f){
+  if((!vid.duration&&!demo)||busy)return;busy=true;
+  cur=Math.max(0,Math.min(tot-1,f));$("scb").value=cur;$("fnum").textContent=(cur+1)+"/"+tot;
+  ctx.clearRect(0,0,cvs.width,cvs.height);
+  if($("oni").checked&&!playing){
+    if(cur>0){await grab(cur-1);tX.putImageData(sobel(239,68,68),0,0);ctx.globalAlpha=.45;ctx.drawImage(tC,0,0);}
+    if(cur<tot-1){await grab(cur+1);tX.putImageData(sobel(34,197,94),0,0);ctx.globalAlpha=.45;ctx.drawImage(tC,0,0);}
+  }
+  await grab(cur);ctx.globalAlpha=1;
+  if($("org").checked){ctx.globalAlpha=.35;ctx.drawImage(wC,0,0);ctx.globalAlpha=1;}
+  tX.putImageData(sobel(0,0,0),0,0);ctx.drawImage(tC,0,0);busy=false;
+}
+
+function init(w,h,frames,startF){
+  cvs.width=wC.width=tC.width=w;cvs.height=wC.height=tC.height=h;tot=frames;$("scb").max=tot-1;
+  ["prv","ply","nxt","scb","expBtn"].forEach(id=>$(id).disabled=false);render(startF);
+}
+
+$("demoBtn").onclick=()=>{clearInterval(tmr);playing=false;$("ply").textContent="Play";demo=true;fps=+$("fps").value;$("st").textContent="Test Clip active! Red = Prev, Green = Next.";init(640,360,24,6);};
+$("fileIn").onchange=e=>{const f=e.target.files[0];if(!f)return;clearInterval(tmr);playing=false;demo=false;$("st").textContent="Loading "+f.name+"...";vid.src=URL.createObjectURL(f);vid.load();};
+vid.onerror=()=>{$("st").textContent="Decode error — convert .webm/AV1 to H.264 .mp4 first.";};
+vid.onloadedmetadata=async()=>{try{await vid.play();vid.pause();}catch(e){}fps=+$("fps").value;$("st").textContent="Loaded "+vid.videoWidth+"x"+vid.videoHeight;init(vid.videoWidth,vid.videoHeight,Math.max(1,Math.floor(vid.duration*fps)),0);};
+
+$("ply").onclick=()=>{if(playing){clearInterval(tmr);playing=false;$("ply").textContent="Play";render(cur);return;}playing=true;$("ply").textContent="Pause";tmr=setInterval(()=>{if(!busy)render((cur+1)%tot);},1000/fps);};
+$("prv").onclick=()=>{clearInterval(tmr);playing=false;$("ply").textContent="Play";render(cur-1);};
+$("nxt").onclick=()=>{clearInterval(tmr);playing=false;$("ply").textContent="Play";render(cur+1);};
+$("scb").oninput=()=>{clearInterval(tmr);playing=false;$("ply").textContent="Play";render(+$("scb").value);};
+["thr","gn","oni","org"].forEach(id=>$(id).oninput=()=>render(cur));
+$("fps").onchange=()=>{fps=+$("fps").value;if(vid.duration&&!demo)init(vid.videoWidth,vid.videoHeight,Math.max(1,Math.floor(vid.duration*fps)),cur);};
+
+$("expBtn").onclick=async()=>{
+  if((!vid.duration&&!demo)||busy)return;clearInterval(tmr);playing=false;busy=true;$("expBtn").disabled=true;
+  const zip=new JSZip(),fld=zip.folder("sakuga_lines");
+  for(let i=0;i<tot;i++){
+    $("st").textContent="Extracting "+(i+1)+"/"+tot+"...";await grab(i);tX.putImageData(sobel(0,0,0),0,0);
+    const b=await new Promise(r=>tC.toBlob(r,"image/png"));fld.file("frame_"+String(i+1).padStart(4,"0")+".png",b);
+  }
+  $("st").textContent="Zipping...";const zb=await zip.generateAsync({type:"blob"}),a=document.createElement("a");
+  a.href=URL.createObjectURL(zb);a.download="sakuga_transparent_lines.zip";a.click();
+  $("st").textContent="Exported "+tot+" transparent PNGs!";$("expBtn").disabled=false;busy=false;render(cur);
 };
-
-var demoBtn = document.getElementById(String.fromCharCode(100,101,109,111,66,116,110));
-var fileInput = document.getElementById(String.fromCharCode(102,105,108,101,73,110,112,117,116));
-var video = document.getElementById(String.fromCharCode(118,105,100,101,111));
-var previewCanvas = document.getElementById(String.fromCharCode(112,114,101,118,105,101,119,67,97,110,118,97,115));
-var ctx = previewCanvas.getContext(d.c2d);
-var placeholderMsg = document.getElementById(String.fromCharCode(112,108,97,99,101,104,111,108,100,101,114,77,115,103));
-
-var prevBtn = document.getElementById(String.fromCharCode(112,114,101,118,66,116,110));
-var playBtn = document.getElementById(String.fromCharCode(112,108,97,121,66,116,110));
-var nextBtn = document.getElementById(String.fromCharCode(110,101,120,116,66,116,110));
-var scrubber = document.getElementById(String.fromCharCode(115,99,114,117,98,98,101,114));
-var frameReadout = document.getElementById(String.fromCharCode(102,114,97,109,101,82,101,97,100,111,117,116));
-
-var fpsSelect = document.getElementById(String.fromCharCode(102,112,115,83,101,108,101,99,116));
-var threshSlider = document.getElementById(String.fromCharCode(116,104,114,101,115,104,83,108,105,100,101,114));
-var threshVal = document.getElementById(String.fromCharCode(116,104,114,101,115,104,86,97,108));
-var gainSlider = document.getElementById(String.fromCharCode(103,97,105,110,83,108,105,100,101,114));
-var gainVal = document.getElementById(String.fromCharCode(103,97,105,110,86,97,108));
-var showOriginal = document.getElementById(String.fromCharCode(115,104,111,119,79,114,105,103,105,110,97,108));
-var onionToggle = document.getElementById(String.fromCharCode(111,110,105,111,110,84,111,103,103,108,101));
-var onionOpSlider = document.getElementById(String.fromCharCode(111,110,105,111,110,79,112,83,108,105,100,101,114));
-var onionOpVal = document.getElementById(String.fromCharCode(111,110,105,111,110,79,112,86,97,108));
-var exportBtn = document.getElementById(String.fromCharCode(101,120,112,111,114,116,66,116,110));
-var workCanvas = document.createElement(d.cvs);
-var workCtx = workCanvas.getContext(d.c2d);
-var tempCanvas = document.createElement(d.cvs);
-var tempCtx = tempCanvas.getContext(d.c2d);
-var fps = 24;
-var totalFrames = 0;
-var currentFrame = 0;
-var isPlaying = false;
-var isBusy = false;
-var playTimer = null;
-var demoMode = false;
-function drawSyntheticDemoFrame(targetCtx, w, h, frameIdx, total) {
-var grad = targetCtx.createLinearGradient(0, 0, w, h);
-grad.addColorStop(0, d.g1);
-grad.addColorStop(1, d.g2);
-targetCtx.fillStyle = grad;
-targetCtx.fillRect(0, 0, w, h);
-targetCtx.fillStyle = d.grn;
-targetCtx.fillRect(0, h * 0.78, w, h * 0.22);
-var denom = Math.max(1, total - 1);
-var t = (frameIdx / denom) * Math.PI;
-var x = w * 0.2 + (frameIdx / denom) * (w * 0.6);
-var bounce = Math.abs(Math.sin(t * 2));
-var y = h * 0.72 - bounce * (h * 0.45);
-var squash = bounce < 0.12 ? 1.25 : 0.92;
-var stretch = 1 / squash;
-targetCtx.save();
-targetCtx.translate(x, y);
-targetCtx.scale(squash, stretch);
-targetCtx.fillStyle = d.org;
-targetCtx.strokeStyle = d.drk;
-targetCtx.lineWidth = 4;
-targetCtx.beginPath();
-targetCtx.arc(0, 0, 34, 0, Math.PI * 2);
-targetCtx.fill();
-targetCtx.stroke();
-targetCtx.restore();
-}
-function extractLineArt(sourceCanvas, rCol, gCol, bCol) {
-var w = sourceCanvas.width;
-var h = sourceCanvas.height;
-var srcImg = workCtx.getImageData(0, 0, w, h);
-var srcView = new DataView(srcImg.data.buffer);
-var outImg = workCtx.createImageData(w, h);
-var dstView = new DataView(outImg.data.buffer);
-var threshold = parseInt(threshSlider.value, 10);
-var gain = parseFloat(gainSlider.value);
-var grayBuf = new ArrayBuffer(w * h * 4);
-var grayView = new DataView(grayBuf);
-var totalPixels = w * h;
-for (var j = 0; j < totalPixels; j++) {
-var p = j * 4;
-var r = srcView.getUint8(p);
-var g = srcView.getUint8(p + 1);
-var b = srcView.getUint8(p + 2);
-var lum = 0.299 * r + 0.587 * g + 0.114 * b;
-grayView.setFloat32(p, lum, true);
-}
-for (var y = 1; y < h - 1; y++) {
-for (var x = 1; x < w - 1; x++) {
-var idx = y * w + x;
-var px = idx * 4;
-var tl = grayView.getFloat32((idx - w - 1) * 4, true);
-var tc = grayView.getFloat32((idx - w) * 4, true);
-var tr = grayView.getFloat32((idx - w + 1) * 4, true);
-var ml = grayView.getFloat32((idx - 1) * 4, true);
-var mr = grayView.getFloat32((idx + 1) * 4, true);
-var bl = grayView.getFloat32((idx + w - 1) * 4, true);
-var bc = grayView.getFloat32((idx + w) * 4, true);
-var br = grayView.getFloat32((idx + w + 1) * 4, true);
-var gx = -tl + tr - 2 * ml + 2 * mr - bl + br;
-var gy = -tl - 2 * tc - tr + bl + 2 * bc + br;
-var mag = Math.sqrt(gx * gx + gy * gy) * 0.25;
-if (mag > threshold) {
-var alpha = Math.min(255, Math.round((mag - threshold) * gain * 2.2));
-dstView.setUint8(px, rCol);
-dstView.setUint8(px + 1, gCol);
-dstView.setUint8(px + 2, bCol);
-dstView.setUint8(px + 3, alpha);
-} else {
-dstView.setUint8(px + 3, 0);
-}
-}
-}
-return outImg;
-}
-function seekToTime(time, done) {
-var clamped = Math.max(0, Math.min(video.duration - 0.001, time));
-if (Math.abs(video.currentTime - clamped) < 0.0005 && video.readyState >= 2) {
-done();
-return;
-}
-var timer = setTimeout(function() {
-video.removeEventListener(d.skd, onSeeked);
-done();
-}, 450);
-function onSeeked() {
-clearTimeout(timer);
-video.removeEventListener(d.skd, onSeeked);
-done();
-}
-video.addEventListener(d.skd, onSeeked);
-video.currentTime = clamped;
-}
-function loadFrameIntoWorkCanvas(frameIdx, w, h, done) {
-if (demoMode) {
-drawSyntheticDemoFrame(workCtx, w, h, frameIdx, totalFrames);
-done();
-} else {
-seekToTime(frameIdx / fps, function() {
-workCtx.drawImage(video, 0, 0, w, h);
-done();
-});
-}
-}
-function renderFrame(frameIndex) {
-if ((!video.duration && !demoMode) || isBusy) return;
-isBusy = true;
-currentFrame = Math.max(0, Math.min(totalFrames - 1, frameIndex));
-scrubber.value = currentFrame;
-frameReadout.textContent = d.frm + (currentFrame + 1) + d.slh + totalFrames;
-var w = previewCanvas.width;
-var h = previewCanvas.height;
-ctx.clearRect(0, 0, w, h);
-var useOnion = onionToggle.checked && !isPlaying;
-var onionAlpha = parseInt(onionOpSlider.value, 10) / 100;
-function drawPrev(nextStep) {
-if (useOnion && currentFrame > 0) {
-loadFrameIntoWorkCanvas(currentFrame - 1, w, h, function() {
-var prevLines = extractLineArt(workCanvas, 239, 68, 68);
-tempCtx.putImageData(prevLines, 0, 0);
-ctx.save();
-ctx.globalAlpha = onionAlpha;
-ctx.drawImage(tempCanvas, 0, 0);
-ctx.restore();
-nextStep();
-});
-} else {
-nextStep();
-}
-}
-function drawNext(nextStep) {
-if (useOnion && currentFrame < totalFrames - 1) {
-loadFrameIntoWorkCanvas(currentFrame + 1, w, h, function() {
-var nextLines = extractLineArt(workCanvas, 34, 197, 94);
-tempCtx.putImageData(nextLines, 0, 0);
-ctx.save();
-ctx.globalAlpha = onionAlpha;
-ctx.drawImage(tempCanvas, 0, 0);
-ctx.restore();
-nextStep();
-});
-} else {
-nextStep();
-}
-}
-drawPrev(function() {
-drawNext(function() {
-loadFrameIntoWorkCanvas(currentFrame, w, h, function() {
-if (showOriginal.checked) {
-ctx.save();
-ctx.globalAlpha = 0.35;
-ctx.drawImage(workCanvas, 0, 0, w, h);
-ctx.restore();
-}
-var currLines = extractLineArt(workCanvas, 0, 0, 0);
-tempCtx.putImageData(currLines, 0, 0);
-ctx.drawImage(tempCanvas, 0, 0);
-isBusy = false;
-});
-});
-});
-}
-demoBtn.addEventListener(d.clk, function() {
-stopPlayback();
-demoMode = true;
-fps = parseFloat(fpsSelect.value);
-totalFrames = 24;
-currentFrame = 6;
-previewCanvas.width = 640;
-previewCanvas.height = 360;
-workCanvas.width = 640;
-workCanvas.height = 360;
-tempCanvas.width = 640;
-tempCanvas.height = 360;
-scrubber.max = totalFrames - 1;
-scrubber.value = currentFrame;
-placeholderMsg.style.display = d.none;
-prevBtn.disabled = false;
-playBtn.disabled = false;
-nextBtn.disabled = false;
-scrubber.disabled = false;
-exportBtn.disabled = false;
-statusText.textContent = d.dem;
-renderFrame(currentFrame);
-});
-fileInput.addEventListener(d.chg, function(e) {
-if (!e.target.files || e.target.files.length === 0) return;
-var file = e.target.files.item(0);
-stopPlayback();
-demoMode = false;
-statusText.textContent = d.ld + file.name;
-placeholderMsg.textContent = d.dc + file.name;
-placeholderMsg.style.display = d.blk;
-var url = URL.createObjectURL(file);
-video.src = url;
-video.load();
-});
-video.addEventListener(d.err, function() {
-statusText.textContent = d.bad;
-placeholderMsg.textContent = d.bad;
-});
-video.addEventListener(d.meta, function() {
-statusText.textContent = d.mrd;
-try {
-var p = video.play();
-if (p && p.then) {
-p.then(function() { video.pause(); }).catch(function() {});
-}
-} catch (err) {}
-fps = parseFloat(fpsSelect.value);
-totalFrames = Math.max(1, Math.floor(video.duration * fps));
-currentFrame = 0;
-previewCanvas.width = video.videoWidth;
-previewCanvas.height = video.videoHeight;
-workCanvas.width = video.videoWidth;
-workCanvas.height = video.videoHeight;
-tempCanvas.width = video.videoWidth;
-tempCanvas.height = video.videoHeight;
-scrubber.max = totalFrames - 1;
-scrubber.value = 0;
-placeholderMsg.style.display = d.none;
-prevBtn.disabled = false;
-playBtn.disabled = false;
-nextBtn.disabled = false;
-scrubber.disabled = false;
-exportBtn.disabled = false;
-statusText.textContent = d.lod + video.videoWidth + String.fromCharCode(120) + video.videoHeight;
-renderFrame(0);
-});
-function stopPlayback() {
-isPlaying = false;
-playBtn.textContent = d.ply;
-clearInterval(playTimer);
-}
-playBtn.addEventListener(d.clk, function() {
-if (isPlaying) {
-stopPlayback();
-renderFrame(currentFrame);
-return;
-}
-isPlaying = true;
-playBtn.textContent = d.pau;
-playTimer = setInterval(function() {
-if (isBusy) return;
-var next = (currentFrame + 1) % totalFrames;
-renderFrame(next);
-}, 1000 / fps);
-});
-prevBtn.addEventListener(d.clk, function() { stopPlayback(); renderFrame(currentFrame - 1); });
-nextBtn.addEventListener(d.clk, function() { stopPlayback(); renderFrame(currentFrame + 1); });
-scrubber.addEventListener(d.inp, function() { stopPlayback(); renderFrame(parseInt(scrubber.value, 10)); });
-fpsSelect.addEventListener(d.chg, function() {
-fps = parseFloat(fpsSelect.value);
-if (video.duration && !demoMode) {
-totalFrames = Math.max(1, Math.floor(video.duration * fps));
-scrubber.max = totalFrames - 1;
-renderFrame(Math.min(currentFrame, totalFrames - 1));
-}
-});
-threshSlider.addEventListener(d.inp, function() {
-threshVal.textContent = threshSlider.value;
-renderFrame(currentFrame);
-});
-gainSlider.addEventListener(d.inp, function() {
-gainVal.textContent = parseFloat(gainSlider.value).toFixed(1) + String.fromCharCode(120);
-renderFrame(currentFrame);
-});
-onionOpSlider.addEventListener(d.inp, function() {
-onionOpVal.textContent = onionOpSlider.value + String.fromCharCode(37);
-renderFrame(currentFrame);
-});
-showOriginal.addEventListener(d.chg, function() { renderFrame(currentFrame); });
-onionToggle.addEventListener(d.chg, function() { renderFrame(currentFrame); });
-window.addEventListener(d.kdn, function(e) {
-if (!video.duration && !demoMode) return;
-if (e.key === String.fromCharCode(44)) { stopPlayback(); renderFrame(currentFrame - 1); }
-if (e.key === String.fromCharCode(46)) { stopPlayback(); renderFrame(currentFrame + 1); }
-if (e.key === String.fromCharCode(32)) { e.preventDefault(); playBtn.click(); }
-});
-exportBtn.addEventListener(d.clk, function() {
-if ((!video.duration && !demoMode) || isBusy) return;
-if (typeof JSZip === d.und) {
-statusText.textContent = d.noz;
-return;
-}
-stopPlayback();
-isBusy = true;
-exportBtn.disabled = true;
-var zip = new JSZip();
-var folder = zip.folder(d.fld);
-var w = previewCanvas.width;
-var h = previewCanvas.height;
-var i = 0;
-function processNext() {
-if (i >= totalFrames) {
-statusText.textContent = d.cmp;
-zip.generateAsync({ type: d.zip }).then(function(zipBlob) {
-var link = document.createElement(d.taga);
-link.href = URL.createObjectURL(zipBlob);
-link.download = d.out;
-link.click();
-statusText.textContent = d.don + totalFrames;
-exportBtn.disabled = false;
-isBusy = false;
-renderFrame(currentFrame);
-});
-return;
-}
-statusText.textContent = d.ext + (i + 1) + d.of + totalFrames;
-loadFrameIntoWorkCanvas(i, w, h, function() {
-var lineImg = extractLineArt(workCanvas, 0, 0, 0);
-tempCtx.putImageData(lineImg, 0, 0);
-tempCanvas.toBlob(function(blob) {
-var num = String(i + 1);
-while (num.length < 4) { num = String.fromCharCode(48) + num; }
-folder.file(d.fpre + num + d.fext, blob);
-i++;
-processNext();
-}, d.mime);
-});
-}
-processNext();
-});
+</script>
+</body>
+</html>
