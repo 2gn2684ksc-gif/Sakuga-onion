@@ -170,7 +170,7 @@
 <body>
 
 <header>
-  <h1>Sakuga Line Extractor v6</h1>
+  <h1>Sakuga Line Extractor v7</h1>
   <input type="file" id="fileInput" class="native-picker">
 </header>
 
@@ -221,7 +221,7 @@
 </div>
 
 <div class="export-bar">
-  <div class="status" id="statusText">Ready (v6). Tap Choose File above.</div>
+  <div class="status" id="statusText">Ready (v7). Tap Choose File above.</div>
   <button id="exportBtn" class="primary" disabled>Export Transparent PNGs (.zip)</button>
 </div>
 
@@ -395,14 +395,13 @@ statusText.textContent = 'FileReader failed. Try moving the video to "On My iPad
 };
 reader.onload = function(evt) {
 statusText.textContent = '2/3 Decoding video in WebKit...';
-const blob = new Blob([evt.target.result], { type: file.type || 'video/mp4' });
+const blob = new Blob(Array.of(evt.target.result), { type: file.type || 'video/mp4' });
 const url = URL.createObjectURL(blob);
 video.src = url;
 video.load();
 };
 reader.readAsArrayBuffer(file);
 }
-// Poll + change listener so iPadOS picker never misses selection
 fileInput.addEventListener('change', (e) => {
 if (e.target.files && e.target.files.length > 0) {
 loadFileObject(e.target.files.item(0));
