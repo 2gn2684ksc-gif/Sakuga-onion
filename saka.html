@@ -95,7 +95,7 @@ function render(f){
     if(cur-step>=0){tX.putImageData(extract(frames.at(cur-step),mask,239,68,68,true),0,0);ctx.globalAlpha=.55;ctx.drawImage(tC,0,0);}
     if(cur+step<frames.length){tX.putImageData(extract(frames.at(cur+step),mask,34,197,94,true),0,0);ctx.globalAlpha=.55;ctx.drawImage(tC,0,0);}
   }
-  ctx.globalAlpha=1;
+  ctx.globalCompositeOperation="source-over";ctx.globalAlpha=1;
 }
 
 async function cacheAllFrames(){
@@ -127,7 +127,7 @@ $("ply").onclick=()=>{if(playing){clearInterval(tmr);playing=false;$("ply").text
 $("prv").onclick=()=>{clearInterval(tmr);playing=false;$("ply").textContent="Play";render(cur-Number($("stp").value));};
 $("nxt").onclick=()=>{clearInterval(tmr);playing=false;$("ply").textContent="Play";render(cur+Number($("stp").value));};
 $("scb").oninput=()=>{clearInterval(tmr);playing=false;$("ply").textContent="Play";render(Number($("scb").value));};
-Array.of("mode","stp","thr","gn","oni"].forEach(id=>$(id).oninput=()=>render(cur));
+Array.of("mode","stp","thr","gn","oni").forEach(id=>$(id).oninput=()=>render(cur));
 $("chkBg").onchange=()=>$("wrap").classList.toggle("checker",$("chkBg").checked);
 
 $("expBtn").onclick=async()=>{
