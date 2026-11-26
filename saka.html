@@ -39,15 +39,13 @@
     border: 1px solid var(--border);
   }
   h1 { font-size: 1.1rem; margin: 0; font-weight: 600; }
-  .file-btn {
-    background: var(--accent);
-    color: white;
-    padding: 10px 16px;
+  .native-picker {
+    background: #2b2b36;
+    color: var(--text);
+    padding: 8px 12px;
     border-radius: 8px;
-    font-weight: 600;
+    border: 1px solid var(--accent);
     font-size: 0.9rem;
-    cursor: pointer;
-    display: inline-block;
   }
 
   .canvas-wrap {
@@ -165,22 +163,19 @@
     border-radius: 12px;
     border: 1px solid var(--border);
   }
-  .status { font-size: 0.9rem; color: #cbd5e1; font-weight: 500; }
+  .status { font-size: 0.95rem; color: #38bdf8; font-weight: 600; }
   video { position: fixed; width: 1px; height: 1px; opacity: 0.01; pointer-events: none; }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>Sakuga Line Extractor & Onion Skin v4</h1>
-  <label class="file-btn">
-    Load Video (.mp4 / .mov)
-    <input type="file" id="fileInput" style="display:none">
-  </label>
+  <h1>Sakuga Line Extractor v6</h1>
+  <input type="file" id="fileInput" class="native-picker">
 </header>
 
-<div class="canvas-wrap">
-  <div class="placeholder-msg" id="placeholderMsg">Tap "Load Video" above and select an .mp4 clip</div>
+<div class="canvas-wrap" id="dropZone">
+  <div class="placeholder-msg" id="placeholderMsg">Tap "Choose File" above and pick your .mp4 clip</div>
   <canvas id="previewCanvas"></canvas>
 </div>
 
@@ -226,7 +221,7 @@
 </div>
 
 <div class="export-bar">
-  <div class="status" id="statusText">Ready (v4). Script active and waiting for video.</div>
+  <div class="status" id="statusText">Ready (v6). Tap Choose File above.</div>
   <button id="exportBtn" class="primary" disabled>Export Transparent PNGs (.zip)</button>
 </div>
 
@@ -308,8 +303,9 @@ function extractLineArt(sourceCanvas, rCol, gCol, bCol) {
       const ml = grayView.getFloat32((idx - 1) * 4, true);
       const mr = grayView.getFloat32((idx + 1) * 4, true);
       const bl = grayView.getFloat32((idx + w - 1) * 4, true);
-const bc = grayView.getFloat32((idx + w) * 4, true);
-const br = grayView.getFloat32((idx + w + 1) * 4, true);
+      const bc = grayView.getFloat32((idx + w) * 4, true);
+      const br = grayView.getFloat32((idx + w + 1) * 4, true);
+
 const gx = -tl + tr - 2 * ml + 2 * mr - bl + br;
 const gy = -tl - 2 * tc - tr + bl + 2 * bc + br;
 const mag = Math.sqrt(gx * gx + gy * gy) * 0.25;
@@ -387,23 +383,38 @@ tempCtx.putImageData(currLines, 0, 0);
 ctx.drawImage(tempCanvas, 0, 0);
 isBusy = false;
 }
-fileInput.addEventListener('change', (e) => {
-const file = e.target.files.item(0);
+function loadFileObject(file) {
 if (!file) return;
 stopPlayback();
-statusText.textContent = Selected: ${file.name} (${Math.round(file.size / 1024)} KB). Decoding...;
-placeholderMsg.textContent = Loading ${file.name}...;
+statusText.textContent = 1/3 Reading ${file.name} (${Math.round(file.size / 1024)} KB)...;
+placeholderMsg.textContent = Reading ${file.name}...;
 placeholderMsg.style.display = 'block';
-const url = URL.createObjectURL(file);
+const reader = new FileReader();
+reader.onerror = function() {
+statusText.textContent = 'FileReader failed. Try moving the video to "On My iPad" instead of iCloud.';
+};
+reader.onload = function(evt) {
+statusText.textContent = '2/3 Decoding video in WebKit...';
+const blob = new Blob([evt.target.result], { type: file.type || 'video/mp4' });
+const url = URL.createObjectURL(blob);
 video.src = url;
 video.load();
+};
+reader.readAsArrayBuffer(file);
+}
+// Poll + change listener so iPadOS picker never misses selection
+fileInput.addEventListener('change', (e) => {
+if (e.target.files && e.target.files.length > 0) {
+loadFileObject(e.target.files.item(0));
+}
 });
 video.addEventListener('error', () => {
 const errCode = video.error ? video.error.code : 'unknown';
-statusText.textContent = Decode failed (Error ${errCode}). If this is a .webm or .mkv file, convert it to .mp4 first.;
-placeholderMsg.textContent = 'Unsupported video format — please load an .mp4 or .mov file';
+statusText.textContent = Decode failed (Error ${errCode}). Safari cannot play .webm or AV1/VP9 videos—convert to H.264 .mp4 first.;
+placeholderMsg.textContent = 'Unsupported video codec — please convert to H.264 .mp4';
 });
 video.addEventListener('loadeddata', async () => {
+statusText.textContent = '3/3 Initializing canvas...';
 try {
 await video.play();
 video.pause();
