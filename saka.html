@@ -172,7 +172,7 @@
 <body>
 
 <header>
-  <h1>Sakuga Line Extractor & Onion Skin v2</h1>
+  <h1>Sakuga Line Extractor & Onion Skin v3</h1>
   <label class="file-btn">
     Load Video (.mp4 / .mov)
     <input type="file" id="fileInput">
@@ -226,7 +226,7 @@
 </div>
 
 <div class="export-bar">
-  <div class="status" id="statusText">Ready (v2). Transparency checkerboard shown behind extracted lines.</div>
+  <div class="status" id="statusText">Ready (v3). Transparency checkerboard shown behind extracted lines.</div>
   <button id="exportBtn" class="primary" disabled>Export Transparent PNGs (.zip)</button>
 </div>
 
@@ -269,7 +269,7 @@ let isPlaying = false;
 let isBusy = false;
 let playTimer = null;
 
-function extractLineArt(sourceCanvas, tintRGB = null) {
+function extractLineArt(sourceCanvas, rCol, gCol, bCol) {
   const w = sourceCanvas.width;
   const h = sourceCanvas.height;
   const src = workCtx.getImageData(0, 0, w, h).data;
@@ -283,10 +283,6 @@ function extractLineArt(sourceCanvas, tintRGB = null) {
   for (let i = 0, j = 0; i < src.length; i += 4, j++) {
     gray[j] = 0.299 * src[i] + 0.587 * src[i + 1] + 0.114 * src[i + 2];
   }
-
-  const rCol = tintRGB ? tintRGB[0] : 0;
-  const gCol = tintRGB ? tintRGB[1] : 0;
-  const bCol = tintRGB ? tintRGB[2] : 0;
 
   for (let y = 1; y < h - 1; y++) {
     for (let x = 1; x < w - 1; x++) {
@@ -319,10 +315,11 @@ function extractLineArt(sourceCanvas, tintRGB = null) {
   }
   return outImg;
 }
+
 function seekToTime(time) {
-return new Promise((resolve) => {
-const clamped = Math.max(0, Math.min(video.duration - 0.001, time));
-if (Math.abs(video.currentTime - clamped) < 0.0005 && video.readyState >= 2) {
+  return new Promise((resolve) => {
+    const clamped = Math.max(0, Math.min(video.duration - 0.001, time));
+    if (Math.abs(video.currentTime - clamped) < 0.0005 && video.readyState >= 2) {
 resolve();
 return;
 }
@@ -350,7 +347,7 @@ const onionAlpha = parseInt(onionOpSlider.value, 10) / 100;
 if (useOnion && currentFrame > 0) {
 await seekToTime((currentFrame - 1) / fps);
 workCtx.drawImage(video, 0, 0, w, h);
-const prevLines = extractLineArt(workCanvas, [239, 68, 68]);
+const prevLines = extractLineArt(workCanvas, 239, 68, 68);
 tempCtx.putImageData(prevLines, 0, 0);
 ctx.save();
 ctx.globalAlpha = onionAlpha;
@@ -360,7 +357,7 @@ ctx.restore();
 if (useOnion && currentFrame < totalFrames - 1) {
 await seekToTime((currentFrame + 1) / fps);
 workCtx.drawImage(video, 0, 0, w, h);
-const nextLines = extractLineArt(workCanvas, [34, 197, 94]);
+const nextLines = extractLineArt(workCanvas, 34, 197, 94);
 tempCtx.putImageData(nextLines, 0, 0);
 ctx.save();
 ctx.globalAlpha = onionAlpha;
@@ -375,13 +372,13 @@ ctx.globalAlpha = 0.35;
 ctx.drawImage(video, 0, 0, w, h);
 ctx.restore();
 }
-const currLines = extractLineArt(workCanvas, null);
+const currLines = extractLineArt(workCanvas, 0, 0, 0);
 tempCtx.putImageData(currLines, 0, 0);
 ctx.drawImage(tempCanvas, 0, 0);
 isBusy = false;
 }
 fileInput.addEventListener('change', (e) => {
-const file = e.target.files[0];
+const file = e.target.files.item(0);
 if (!file) return;
 stopPlayback();
 statusText.textContent = Selected: ${file.name} (${Math.round(file.size / 1024)} KB). Decoding...;
@@ -397,7 +394,6 @@ statusText.textContent = Decode failed (Error ${errCode}). If this is a .webm or
 placeholderMsg.textContent = 'Unsupported video format — please load an .mp4 or .mov file';
 });
 video.addEventListener('loadeddata', async () => {
-// Nudge Safari to decode frame 0
 try {
 await video.play();
 video.pause();
@@ -480,7 +476,7 @@ for (let i = 0; i < totalFrames; i++) {
 statusText.textContent = Extracting transparent frame ${i + 1} of ${totalFrames}...;
 await seekToTime(i / fps);
 workCtx.drawImage(video, 0, 0, w, h);
-const lineImg = extractLineArt(workCanvas, null);
+const lineImg = extractLineArt(workCanvas, 0, 0, 0);
 tempCtx.putImageData(lineImg, 0, 0);
 const blob = await new Promise(res => tempCanvas.toBlob(res, 'image/png'));
 const fileName = frame_${String(i + 1).padStart(4, '0')}.png;
@@ -497,4 +493,3 @@ exportBtn.disabled = false;
 isBusy = false;
 renderFrame(currentFrame);
 });
-  
