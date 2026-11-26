@@ -17,13 +17,13 @@
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
     margin: 0;
-    padding: 16px;
+    padding: 12px;
     background: var(--bg);
     color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 10px;
     max-width: 1100px;
     margin-inline: auto;
   }
@@ -32,27 +32,57 @@
     flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     background: var(--panel);
-    padding: 14px 18px;
+    padding: 12px 16px;
     border-radius: 12px;
     border: 1px solid var(--border);
   }
-  h1 { font-size: 1.1rem; margin: 0; font-weight: 600; }
+  h1 { font-size: 1.05rem; margin: 0; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .badge {
+    font-size: 0.75rem;
+    padding: 3px 8px;
+    border-radius: 99px;
+    background: #dc2626;
+    color: #fff;
+  }
+  .badge.ok { background: #16a34a; }
+  .header-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   .native-picker {
     background: #2b2b36;
     color: var(--text);
-    padding: 8px 12px;
+    padding: 7px 10px;
     border-radius: 8px;
     border: 1px solid var(--accent);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    max-width: 220px;
+  }
+
+  .top-status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: #172033;
+    border: 1px solid #2563eb;
+    padding: 10px 14px;
+    border-radius: 10px;
+  }
+  .status { font-size: 0.88rem; color: #7dd3fc; font-weight: 600; word-break: break-word; }
+  #video {
+    width: 80px;
+    height: 45px;
+    background: #000;
+    border-radius: 4px;
+    border: 1px solid #334155;
+    flex-shrink: 0;
   }
 
   .canvas-wrap {
     position: relative;
     width: 100%;
     aspect-ratio: 16 / 9;
-    max-height: 60vh;
+    max-height: 48vh;
     background-color: #ffffff;
     background-image:
       linear-gradient(45deg, #e5e5e5 25%, transparent 25%),
@@ -79,20 +109,21 @@
     position: absolute;
     color: #333;
     background: rgba(255,255,255,0.92);
-    padding: 12px 20px;
+    padding: 10px 16px;
     border-radius: 8px;
     font-weight: 600;
     pointer-events: none;
     text-align: center;
+    font-size: 0.9rem;
   }
 
   .transport {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     background: var(--panel);
-    padding: 12px 16px;
+    padding: 10px 14px;
     border-radius: 12px;
     border: 1px solid var(--border);
   }
@@ -100,9 +131,9 @@
     background: #2b2b36;
     color: var(--text);
     border: 1px solid var(--border);
-    padding: 10px 14px;
+    padding: 9px 13px;
     border-radius: 8px;
-    font-size: 0.9rem;
+    font-size: 0.88rem;
     font-weight: 600;
     cursor: pointer;
     touch-action: manipulation;
@@ -110,27 +141,28 @@
   button:active { transform: scale(0.97); }
   button:disabled { opacity: 0.4; cursor: not-allowed; }
   button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .scrubber { flex: 1; min-width: 160px; accent-color: var(--accent); height: 28px; }
-  .frame-readout { font-variant-numeric: tabular-nums; font-size: 0.9rem; color: var(--muted); min-width: 110px; text-align: right; }
+  button.demo { background: #0d9488; border-color: #0d9488; color: #fff; }
+  .scrubber { flex: 1; min-width: 140px; accent-color: var(--accent); height: 28px; }
+  .frame-readout { font-variant-numeric: tabular-nums; font-size: 0.88rem; color: var(--muted); min-width: 100px; text-align: right; }
 
   .controls-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 14px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 10px;
   }
   .card {
     background: var(--panel);
-    padding: 14px 16px;
+    padding: 12px 14px;
     border-radius: 12px;
     border: 1px solid var(--border);
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
   }
   .card label {
     display: flex;
     justify-content: space-between;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     color: var(--muted);
   }
   .card label span { color: var(--text); font-weight: 600; }
@@ -140,42 +172,37 @@
     background: #2b2b36;
     color: var(--text);
     border: 1px solid var(--border);
-    padding: 8px;
+    padding: 7px;
     border-radius: 6px;
-    font-size: 0.9rem;
+    font-size: 0.88rem;
   }
   .toggle-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 0.9rem;
+    font-size: 0.88rem;
   }
   .chk-input { width: 20px; height: 20px; }
-
-  .export-bar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    background: var(--panel);
-    padding: 16px;
-    border-radius: 12px;
-    border: 1px solid var(--border);
-  }
-  .status { font-size: 0.95rem; color: #38bdf8; font-weight: 600; }
-  video { position: fixed; width: 1px; height: 1px; opacity: 0.01; pointer-events: none; }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>Sakuga Line Extractor v7</h1>
-  <input type="file" id="fileInput" class="native-picker">
+  <h1>Sakuga Line Extractor v9 <span id="jsBadge" class="badge">JS Off</span></h1>
+  <div class="header-actions">
+    <button id="demoBtn" class="demo">Run Test Clip</button>
+    <input type="file" id="fileInput" class="native-picker">
+  </div>
 </header>
 
-<div class="canvas-wrap" id="dropZone">
-  <div class="placeholder-msg" id="placeholderMsg">Tap "Choose File" above and pick your .mp4 clip</div>
+<div class="top-status">
+  <div class="status" id="statusText">Waiting for script...</div>
+  <button id="exportBtn" class="primary" disabled>Export PNGs (.zip)</button>
+  <video id="video" playsinline webkit-playsinline muted preload="auto"></video>
+</div>
+
+<div class="canvas-wrap">
+  <div class="placeholder-msg" id="placeholderMsg">Tap "Run Test Clip" or "Choose File" above</div>
   <canvas id="previewCanvas"></canvas>
 </div>
 
@@ -220,19 +247,18 @@
   </div>
 </div>
 
-<div class="export-bar">
-  <div class="status" id="statusText">Ready (v7). Tap Choose File above.</div>
-  <button id="exportBtn" class="primary" disabled>Export Transparent PNGs (.zip)</button>
-</div>
-
-<video id="video" playsinline webkit-playsinline muted preload="auto"></video>
-
 <script>
 const statusText = document.getElementById('statusText');
+const jsBadge = document.getElementById('jsBadge');
+jsBadge.textContent = 'JS Active';
+jsBadge.classList.add('ok');
+statusText.textContent = 'Ready (v9). Tap "Run Test Clip" or pick your .mp4.';
+
 window.onerror = function(msg, src, line) {
-  statusText.textContent = 'JS Error on line ' + line + ': ' + msg;
+  statusText.textContent = 'Error line ' + line + ': ' + msg;
 };
 
+const demoBtn = document.getElementById('demoBtn');
 const fileInput = document.getElementById('fileInput');
 const video = document.getElementById('video');
 const previewCanvas = document.getElementById('previewCanvas');
@@ -267,45 +293,71 @@ let currentFrame = 0;
 let isPlaying = false;
 let isBusy = false;
 let playTimer = null;
+let demoMode = false;
 
+function drawSyntheticDemoFrame(targetCtx, w, h, frameIdx, total) {
+  // Full-colour anime-style gradient background (proves background gets stripped!)
+  const grad = targetCtx.createLinearGradient(0, 0, w, h);
+  grad.addColorStop(0, '#38bdf8');
+  grad.addColorStop(1, '#fef08a');
+  targetCtx.fillStyle = grad;
+  targetCtx.fillRect(0, 0, w, h);
+
+  // Ground plane
+  targetCtx.fillStyle = '#4ade80';
+  targetCtx.fillRect(0, h * 0.78, w, h * 0.22);
+
+  // Bouncing character ball with squash & stretch
+  const t = (frameIdx / Math.max(1, total - 1)) * Math.PI;
+  const x = w * 0.2 + (frameIdx / Math.max(1, total - 1)) * (w * 0.6);
+  const bounce = Math.abs(Math.sin(t * 2));
+const y = h * 0.72 - bounce * (h * 0.45);
+const squash = bounce < 0.12 ? 1.25 : 0.92;
+const stretch = 1 / squash;
+targetCtx.save();
+targetCtx.translate(x, y);
+targetCtx.scale(squash, stretch);
+targetCtx.fillStyle = '#f97316';
+targetCtx.strokeStyle = '#111827';
+targetCtx.lineWidth = 4;
+targetCtx.beginPath();
+targetCtx.arc(0, 0, 34, 0, Math.PI * 2);
+targetCtx.fill();
+targetCtx.stroke();
+targetCtx.restore();
+}
 function extractLineArt(sourceCanvas, rCol, gCol, bCol) {
-  const w = sourceCanvas.width;
-  const h = sourceCanvas.height;
-  const srcImg = workCtx.getImageData(0, 0, w, h);
-  const srcView = new DataView(srcImg.data.buffer);
-  const outImg = workCtx.createImageData(w, h);
-  const dstView = new DataView(outImg.data.buffer);
-
-  const threshold = parseInt(threshSlider.value, 10);
-  const gain = parseFloat(gainSlider.value);
-
-  const grayBuf = new ArrayBuffer(w * h * 4);
-  const grayView = new DataView(grayBuf);
-
-  const totalPixels = w * h;
-  for (let j = 0; j < totalPixels; j++) {
-    const p = j * 4;
-    const r = srcView.getUint8(p);
-    const g = srcView.getUint8(p + 1);
-    const b = srcView.getUint8(p + 2);
-    const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-    grayView.setFloat32(p, lum, true);
-  }
-
-  for (let y = 1; y < h - 1; y++) {
-    for (let x = 1; x < w - 1; x++) {
-      const idx = y * w + x;
-      const p = idx * 4;
-
-      const tl = grayView.getFloat32((idx - w - 1) * 4, true);
-      const tc = grayView.getFloat32((idx - w) * 4, true);
-      const tr = grayView.getFloat32((idx - w + 1) * 4, true);
-      const ml = grayView.getFloat32((idx - 1) * 4, true);
-      const mr = grayView.getFloat32((idx + 1) * 4, true);
-      const bl = grayView.getFloat32((idx + w - 1) * 4, true);
-      const bc = grayView.getFloat32((idx + w) * 4, true);
-      const br = grayView.getFloat32((idx + w + 1) * 4, true);
-
+const w = sourceCanvas.width;
+const h = sourceCanvas.height;
+const srcImg = workCtx.getImageData(0, 0, w, h);
+const srcView = new DataView(srcImg.data.buffer);
+const outImg = workCtx.createImageData(w, h);
+const dstView = new DataView(outImg.data.buffer);
+const threshold = parseInt(threshSlider.value, 10);
+const gain = parseFloat(gainSlider.value);
+const grayBuf = new ArrayBuffer(w * h * 4);
+const grayView = new DataView(grayBuf);
+const totalPixels = w * h;
+for (let j = 0; j < totalPixels; j++) {
+const p = j * 4;
+const r = srcView.getUint8(p);
+const g = srcView.getUint8(p + 1);
+const b = srcView.getUint8(p + 2);
+const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+grayView.setFloat32(p, lum, true);
+}
+for (let y = 1; y < h - 1; y++) {
+for (let x = 1; x < w - 1; x++) {
+const idx = y * w + x;
+const p = idx * 4;
+const tl = grayView.getFloat32((idx - w - 1) * 4, true);
+const tc = grayView.getFloat32((idx - w) * 4, true);
+const tr = grayView.getFloat32((idx - w + 1) * 4, true);
+const ml = grayView.getFloat32((idx - 1) * 4, true);
+const mr = grayView.getFloat32((idx + 1) * 4, true);
+const bl = grayView.getFloat32((idx + w - 1) * 4, true);
+const bc = grayView.getFloat32((idx + w) * 4, true);
+const br = grayView.getFloat32((idx + w + 1) * 4, true);
 const gx = -tl + tr - 2 * ml + 2 * mr - bl + br;
 const gy = -tl - 2 * tc - tr + bl + 2 * bc + br;
 const mag = Math.sqrt(gx * gx + gy * gy) * 0.25;
@@ -339,8 +391,16 @@ video.addEventListener('seeked', onSeeked);
 video.currentTime = clamped;
 });
 }
+async function loadFrameIntoWorkCanvas(frameIdx, w, h) {
+if (demoMode) {
+drawSyntheticDemoFrame(workCtx, w, h, frameIdx, totalFrames);
+} else {
+await seekToTime(frameIdx / fps);
+workCtx.drawImage(video, 0, 0, w, h);
+}
+}
 async function renderFrame(frameIndex) {
-if (!video.duration || isBusy) return;
+if ((!video.duration && !demoMode) || isBusy) return;
 isBusy = true;
 currentFrame = Math.max(0, Math.min(totalFrames - 1, frameIndex));
 scrubber.value = currentFrame;
@@ -351,8 +411,7 @@ ctx.clearRect(0, 0, w, h);
 const useOnion = onionToggle.checked && !isPlaying;
 const onionAlpha = parseInt(onionOpSlider.value, 10) / 100;
 if (useOnion && currentFrame > 0) {
-await seekToTime((currentFrame - 1) / fps);
-workCtx.drawImage(video, 0, 0, w, h);
+await loadFrameIntoWorkCanvas(currentFrame - 1, w, h);
 const prevLines = extractLineArt(workCanvas, 239, 68, 68);
 tempCtx.putImageData(prevLines, 0, 0);
 ctx.save();
@@ -361,8 +420,7 @@ ctx.drawImage(tempCanvas, 0, 0);
 ctx.restore();
 }
 if (useOnion && currentFrame < totalFrames - 1) {
-await seekToTime((currentFrame + 1) / fps);
-workCtx.drawImage(video, 0, 0, w, h);
+await loadFrameIntoWorkCanvas(currentFrame + 1, w, h);
 const nextLines = extractLineArt(workCanvas, 34, 197, 94);
 tempCtx.putImageData(nextLines, 0, 0);
 ctx.save();
@@ -370,12 +428,11 @@ ctx.globalAlpha = onionAlpha;
 ctx.drawImage(tempCanvas, 0, 0);
 ctx.restore();
 }
-await seekToTime(currentFrame / fps);
-workCtx.drawImage(video, 0, 0, w, h);
+await loadFrameIntoWorkCanvas(currentFrame, w, h);
 if (showOriginal.checked) {
 ctx.save();
 ctx.globalAlpha = 0.35;
-ctx.drawImage(video, 0, 0, w, h);
+ctx.drawImage(workCanvas, 0, 0, w, h);
 ctx.restore();
 }
 const currLines = extractLineArt(workCanvas, 0, 0, 0);
@@ -383,24 +440,39 @@ tempCtx.putImageData(currLines, 0, 0);
 ctx.drawImage(tempCanvas, 0, 0);
 isBusy = false;
 }
+demoBtn.addEventListener('click', () => {
+stopPlayback();
+demoMode = true;
+fps = parseFloat(fpsSelect.value);
+totalFrames = 24;
+currentFrame = 6;
+previewCanvas.width = 640;
+previewCanvas.height = 360;
+workCanvas.width = 640;
+workCanvas.height = 360;
+tempCanvas.width = 640;
+tempCanvas.height = 360;
+scrubber.max = totalFrames - 1;
+scrubber.value = currentFrame;
+placeholderMsg.style.display = 'none';
+prevBtn.disabled = false;
+playBtn.disabled = false;
+nextBtn.disabled = false;
+scrubber.disabled = false;
+exportBtn.disabled = false;
+statusText.textContent = 'Test Clip active (24 frames). Red = Prev frame, Green = Next frame!';
+renderFrame(currentFrame);
+});
 function loadFileObject(file) {
 if (!file) return;
 stopPlayback();
-statusText.textContent = 1/3 Reading ${file.name} (${Math.round(file.size / 1024)} KB)...;
-placeholderMsg.textContent = Reading ${file.name}...;
+demoMode = false;
+statusText.textContent = Loading ${file.name} (${Math.round(file.size / 1024)} KB)...;
+placeholderMsg.textContent = Decoding ${file.name}...;
 placeholderMsg.style.display = 'block';
-const reader = new FileReader();
-reader.onerror = function() {
-statusText.textContent = 'FileReader failed. Try moving the video to "On My iPad" instead of iCloud.';
-};
-reader.onload = function(evt) {
-statusText.textContent = '2/3 Decoding video in WebKit...';
-const blob = new Blob(Array.of(evt.target.result), { type: file.type || 'video/mp4' });
-const url = URL.createObjectURL(blob);
+const url = URL.createObjectURL(file);
 video.src = url;
 video.load();
-};
-reader.readAsArrayBuffer(file);
 }
 fileInput.addEventListener('change', (e) => {
 if (e.target.files && e.target.files.length > 0) {
@@ -409,11 +481,11 @@ loadFileObject(e.target.files.item(0));
 });
 video.addEventListener('error', () => {
 const errCode = video.error ? video.error.code : 'unknown';
-statusText.textContent = Decode failed (Error ${errCode}). Safari cannot play .webm or AV1/VP9 videos—convert to H.264 .mp4 first.;
-placeholderMsg.textContent = 'Unsupported video codec — please convert to H.264 .mp4';
+statusText.textContent = Cannot decode video (Code ${errCode}). Convert .webm / VP9 / AV1 to H.264 .mp4 first.;
+placeholderMsg.textContent = 'Unsupported video codec — convert to H.264 .mp4';
 });
-video.addEventListener('loadeddata', async () => {
-statusText.textContent = '3/3 Initializing canvas...';
+video.addEventListener('loadedmetadata', async () => {
+statusText.textContent = Metadata ready (${video.videoWidth}x${video.videoHeight}). Decoding frame 1...;
 try {
 await video.play();
 video.pause();
@@ -462,7 +534,7 @@ nextBtn.addEventListener('click', () => { stopPlayback(); renderFrame(currentFra
 scrubber.addEventListener('input', () => { stopPlayback(); renderFrame(parseInt(scrubber.value, 10)); });
 fpsSelect.addEventListener('change', () => {
 fps = parseFloat(fpsSelect.value);
-if (video.duration) {
+if (video.duration && !demoMode) {
 totalFrames = Math.max(1, Math.floor(video.duration * fps));
 scrubber.max = totalFrames - 1;
 renderFrame(Math.min(currentFrame, totalFrames - 1));
@@ -483,13 +555,13 @@ renderFrame(currentFrame);
 showOriginal.addEventListener('change', () => renderFrame(currentFrame));
 onionToggle.addEventListener('change', () => renderFrame(currentFrame));
 window.addEventListener('keydown', (e) => {
-if (!video.duration) return;
+if (!video.duration && !demoMode) return;
 if (e.key === ',') { stopPlayback(); renderFrame(currentFrame - 1); }
 if (e.key === '.') { stopPlayback(); renderFrame(currentFrame + 1); }
 if (e.key === ' ') { e.preventDefault(); playBtn.click(); }
 });
 exportBtn.addEventListener('click', async () => {
-if (!video.duration || isBusy) return;
+if ((!video.duration && !demoMode) || isBusy) return;
 stopPlayback();
 isBusy = true;
 exportBtn.disabled = true;
@@ -498,9 +570,8 @@ const folder = zip.folder('sakuga_lines');
 const w = previewCanvas.width;
 const h = previewCanvas.height;
 for (let i = 0; i < totalFrames; i++) {
-statusText.textContent = Extracting transparent frame ${i + 1} of ${totalFrames}...;
-await seekToTime(i / fps);
-workCtx.drawImage(video, 0, 0, w, h);
+statusText.textContent = Extracting frame ${i + 1} of ${totalFrames}...;
+await loadFrameIntoWorkCanvas(i, w, h);
 const lineImg = extractLineArt(workCanvas, 0, 0, 0);
 tempCtx.putImageData(lineImg, 0, 0);
 const blob = await new Promise(res => tempCanvas.toBlob(res, 'image/png'));
