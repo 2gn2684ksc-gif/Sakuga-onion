@@ -49,7 +49,6 @@
     cursor: pointer;
     display: inline-block;
   }
-  input[type="file"] { display: none; }
 
   .canvas-wrap {
     position: relative;
@@ -137,7 +136,8 @@
     color: var(--muted);
   }
   .card label span { color: var(--text); font-weight: 600; }
-  select, input[type="range"] { width: 100%; accent-color: var(--accent); }
+  select, input { accent-color: var(--accent); }
+  select, .range-input { width: 100%; }
   select {
     background: #2b2b36;
     color: var(--text);
@@ -152,7 +152,7 @@
     justify-content: space-between;
     font-size: 0.9rem;
   }
-  input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); }
+  .chk-input { width: 20px; height: 20px; }
 
   .export-bar {
     display: flex;
@@ -172,10 +172,10 @@
 <body>
 
 <header>
-  <h1>Sakuga Line Extractor & Onion Skin v3</h1>
+  <h1>Sakuga Line Extractor & Onion Skin v4</h1>
   <label class="file-btn">
     Load Video (.mp4 / .mov)
-    <input type="file" id="fileInput">
+    <input type="file" id="fileInput" style="display:none">
   </label>
 </header>
 
@@ -203,36 +203,41 @@
       <option value="30">30 fps</option>
     </select>
     <label>Line Thickness / Gain <span id="gainVal">1.4x</span></label>
-    <input type="range" id="gainSlider" min="0.5" max="3.0" step="0.1" value="1.4">
+    <input type="range" id="gainSlider" class="range-input" min="0.5" max="3.0" step="0.1" value="1.4">
   </div>
 
   <div class="card">
     <label>Edge Threshold (Noise Cut) <span id="threshVal">45</span></label>
-    <input type="range" id="threshSlider" min="5" max="150" step="1" value="45">
+    <input type="range" id="threshSlider" class="range-input" min="5" max="150" step="1" value="45">
     <div class="toggle-row">
       <span>Show Original Video Underlay</span>
-      <input type="checkbox" id="showOriginal">
+      <input type="checkbox" id="showOriginal" class="chk-input">
     </div>
   </div>
 
   <div class="card">
     <div class="toggle-row">
       <span>Live Onion Skin (Red / Green)</span>
-      <input type="checkbox" id="onionToggle" checked>
+      <input type="checkbox" id="onionToggle" class="chk-input" checked>
     </div>
     <label>Onion Skin Opacity <span id="onionOpVal">45%</span></label>
-    <input type="range" id="onionOpSlider" min="10" max="90" step="5" value="45">
+    <input type="range" id="onionOpSlider" class="range-input" min="10" max="90" step="5" value="45">
   </div>
 </div>
 
 <div class="export-bar">
-  <div class="status" id="statusText">Ready (v3). Transparency checkerboard shown behind extracted lines.</div>
+  <div class="status" id="statusText">Ready (v4). Script active and waiting for video.</div>
   <button id="exportBtn" class="primary" disabled>Export Transparent PNGs (.zip)</button>
 </div>
 
 <video id="video" playsinline webkit-playsinline muted preload="auto"></video>
 
 <script>
+const statusText = document.getElementById('statusText');
+window.onerror = function(msg, src, line) {
+  statusText.textContent = 'JS Error on line ' + line + ': ' + msg;
+};
+
 const fileInput = document.getElementById('fileInput');
 const video = document.getElementById('video');
 const previewCanvas = document.getElementById('previewCanvas');
@@ -255,7 +260,6 @@ const onionToggle = document.getElementById('onionToggle');
 const onionOpSlider = document.getElementById('onionOpSlider');
 const onionOpVal = document.getElementById('onionOpVal');
 const exportBtn = document.getElementById('exportBtn');
-const statusText = document.getElementById('statusText');
 
 const workCanvas = document.createElement('canvas');
 const workCtx = workCanvas.getContext('2d', { willReadFrequently: true });
@@ -272,54 +276,60 @@ let playTimer = null;
 function extractLineArt(sourceCanvas, rCol, gCol, bCol) {
   const w = sourceCanvas.width;
   const h = sourceCanvas.height;
-  const src = workCtx.getImageData(0, 0, w, h).data;
+  const srcImg = workCtx.getImageData(0, 0, w, h);
+  const srcView = new DataView(srcImg.data.buffer);
   const outImg = workCtx.createImageData(w, h);
-  const dst = outImg.data;
+  const dstView = new DataView(outImg.data.buffer);
 
   const threshold = parseInt(threshSlider.value, 10);
   const gain = parseFloat(gainSlider.value);
 
-  const gray = new Float32Array(w * h);
-  for (let i = 0, j = 0; i < src.length; i += 4, j++) {
-    gray[j] = 0.299 * src[i] + 0.587 * src[i + 1] + 0.114 * src[i + 2];
+  const grayBuf = new ArrayBuffer(w * h * 4);
+  const grayView = new DataView(grayBuf);
+
+  const totalPixels = w * h;
+  for (let j = 0; j < totalPixels; j++) {
+    const p = j * 4;
+    const r = srcView.getUint8(p);
+    const g = srcView.getUint8(p + 1);
+    const b = srcView.getUint8(p + 2);
+    const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+    grayView.setFloat32(p, lum, true);
   }
 
   for (let y = 1; y < h - 1; y++) {
     for (let x = 1; x < w - 1; x++) {
       const idx = y * w + x;
-
-      const tl = gray[idx - w - 1];
-      const tc = gray[idx - w];
-      const tr = gray[idx - w + 1];
-      const ml = gray[idx - 1];
-      const mr = gray[idx + 1];
-      const bl = gray[idx + w - 1];
-      const bc = gray[idx + w];
-      const br = gray[idx + w + 1];
-
-      const gx = -tl + tr - 2 * ml + 2 * mr - bl + br;
-      const gy = -tl - 2 * tc - tr + bl + 2 * bc + br;
-      const mag = Math.sqrt(gx * gx + gy * gy) * 0.25;
-
       const p = idx * 4;
-      if (mag > threshold) {
-        const alpha = Math.min(255, (mag - threshold) * gain * 2.2);
-        dst[p] = rCol;
-        dst[p + 1] = gCol;
-        dst[p + 2] = bCol;
-        dst[p + 3] = alpha;
-      } else {
-        dst[p + 3] = 0;
-      }
-    }
-  }
-  return outImg;
-}
 
+      const tl = grayView.getFloat32((idx - w - 1) * 4, true);
+      const tc = grayView.getFloat32((idx - w) * 4, true);
+      const tr = grayView.getFloat32((idx - w + 1) * 4, true);
+      const ml = grayView.getFloat32((idx - 1) * 4, true);
+      const mr = grayView.getFloat32((idx + 1) * 4, true);
+      const bl = grayView.getFloat32((idx + w - 1) * 4, true);
+const bc = grayView.getFloat32((idx + w) * 4, true);
+const br = grayView.getFloat32((idx + w + 1) * 4, true);
+const gx = -tl + tr - 2 * ml + 2 * mr - bl + br;
+const gy = -tl - 2 * tc - tr + bl + 2 * bc + br;
+const mag = Math.sqrt(gx * gx + gy * gy) * 0.25;
+if (mag > threshold) {
+const alpha = Math.min(255, Math.round((mag - threshold) * gain * 2.2));
+dstView.setUint8(p, rCol);
+dstView.setUint8(p + 1, gCol);
+dstView.setUint8(p + 2, bCol);
+dstView.setUint8(p + 3, alpha);
+} else {
+dstView.setUint8(p + 3, 0);
+}
+}
+}
+return outImg;
+}
 function seekToTime(time) {
-  return new Promise((resolve) => {
-    const clamped = Math.max(0, Math.min(video.duration - 0.001, time));
-    if (Math.abs(video.currentTime - clamped) < 0.0005 && video.readyState >= 2) {
+return new Promise((resolve) => {
+const clamped = Math.max(0, Math.min(video.duration - 0.001, time));
+if (Math.abs(video.currentTime - clamped) < 0.0005 && video.readyState >= 2) {
 resolve();
 return;
 }
@@ -410,7 +420,11 @@ tempCanvas.height = video.videoHeight;
 scrubber.max = totalFrames - 1;
 scrubber.value = 0;
 placeholderMsg.style.display = 'none';
-[prevBtn, playBtn, nextBtn, scrubber, exportBtn].forEach(el => el.disabled = false);
+prevBtn.disabled = false;
+playBtn.disabled = false;
+nextBtn.disabled = false;
+scrubber.disabled = false;
+exportBtn.disabled = false;
 statusText.textContent = Loaded ${video.videoWidth}×${video.videoHeight} (${totalFrames} frames @ ${fps} fps);
 renderFrame(0);
 });
@@ -456,7 +470,8 @@ onionOpSlider.addEventListener('input', () => {
 onionOpVal.textContent = ${onionOpSlider.value}%;
 renderFrame(currentFrame);
 });
-[showOriginal, onionToggle].forEach(el => el.addEventListener('change', () => renderFrame(currentFrame)));
+showOriginal.addEventListener('change', () => renderFrame(currentFrame));
+onionToggle.addEventListener('change', () => renderFrame(currentFrame));
 window.addEventListener('keydown', (e) => {
 if (!video.duration) return;
 if (e.key === ',') { stopPlayback(); renderFrame(currentFrame - 1); }
