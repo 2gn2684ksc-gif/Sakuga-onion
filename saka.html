@@ -3,12 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Sakuga Onion v16</title>
+<title>Sakuga Onion v17</title>
 <script src="https://cloudflare.com"></script>
 <style>
 body{margin:0;padding:12px;background:#121215;color:#f0f0f5;font-family:-apple-system,sans-serif;display:flex;flex-direction:column;gap:10px;max-width:960px;margin-inline:auto}
 .bar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;background:#1e1e24;padding:10px 14px;border-radius:10px;border:1px solid #2e2e38}
-.badge{font-size:12px;padding:3px 8px;border-radius:99px;background:#16a34a;color:#fff}
+.badge{font-size:12px;padding:3px 8px;border-radius:99px;background:#dc2626;color:#fff}
+.ok{background:#16a34a}
 .status{background:#172033;border:1px solid #2563eb;padding:10px 14px;border-radius:10px;color:#7dd3fc;font-weight:600;font-size:14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
 .wrap{position:relative;width:100%;aspect-ratio:16/9;max-height:50vh;border-radius:10px;overflow:hidden;border:1px solid #2e2e38;display:flex;align-items:center;justify-content:center;background:#ffffff}
 .checker{background-image:linear-gradient(45deg,#e5e5e5 25%,transparent 25%),linear-gradient(-45deg,#e5e5e5 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#e5e5e5 75%),linear-gradient(-45deg,transparent 75%,#e5e5e5 75%);background-size:20px 20px;background-position:0 0,0 10px,10px -10px,-10px 0}
@@ -22,11 +23,11 @@ video{width:72px;height:40px;background:#000;border-radius:4px}
 </head>
 <body>
 <div class="bar">
-  <b>Sakuga Onion v16 <span class="badge">JS Active</span></b>
+  <b>Sakuga Onion v17 <span id="bdg" class="badge">JS Off</span></b>
   <input type="file" id="fileIn" style="max-width:210px;color:#fff">
 </div>
 <div class="status">
-  <span id="st">Ready (v16)! Pick your .mp4 clip above.</span>
+  <span id="st">Waiting...</span>
   <button id="expBtn" class="blue" disabled>Export PNGs (.zip)</button>
   <video id="vid" playsinline webkit-playsinline muted preload="auto"></video>
 </div>
@@ -51,14 +52,19 @@ video{width:72px;height:40px;background:#000;border-radius:4px}
   <label><input type="checkbox" id="chkBg"> Grid</label>
 </div>
 <script>
-const $=id=>document.getElementById(id),cvs=$("cvs"),ctx=cvs.getContext("2d"),vid=$("vid");
+const $=id=>document.getElementById(id);
+$("bdg").textContent="JS Active";$("bdg").className="badge ok";
+$("st").textContent="Ready (v17)! Pick your .mp4 clip above.";
+window.onerror=(m,s,l)=>{$("st").textContent="Err "+l+": "+m;};
+
+const cvs=$("cvs"),ctx=cvs.getContext("2d"),vid=$("vid");
 const cC=document.createElement("canvas"),cX=cC.getContext("2d"),oC=document.createElement("canvas"),oX=oC.getContext("2d"),tC=document.createElement("canvas"),tX=tC.getContext("2d");
 let fps=24,tot=0,cur=0,playing=false,busy=false,tmr=null;
 
 const seek=t=>new Promise(r=>{const c=Math.max(0,Math.min(vid.duration-.001,t));if(Math.abs(vid.currentTime-c)<.0005&&vid.readyState>=2)return r();const to=setTimeout(r,400);vid.addEventListener("seeked",()=>{clearTimeout(to);r();},{once:true});vid.currentTime=c;});
 
 function extract(srcData,refData,rC,gC,bC,isOnion){
-  const w=cvs.width,h=cvs.height,out=cX.createImageData(w,h),d=out.data,th=+$("thr").value,gn=+$("gn").value,md=$("mode").value;
+  const w=cvs.width,h=cvs.height,out=cX.createImageData(w,h),d=out.data,th=Number($("thr").value),gn=Number($("gn").value),md=$("mode").value;
   if(isOnion&&md==="diff"&&refData){
     for(let i=0;i<srcData.length;i+=4){
       const df=(Math.abs(srcData[i]-refData[i])+Math.abs(srcData[i+1]-refData[i+1])+Math.abs(srcData[i+2]-refData[i+2]))/3;
@@ -85,7 +91,7 @@ function extract(srcData,refData,rC,gC,bC,isOnion){
 async function render(f){
   if(!vid.duration||busy)return;busy=true;
   cur=Math.max(0,Math.min(tot-1,f));$("scb").value=cur;$("fnum").textContent=(cur+1)+"/"+tot;
-  const w=cvs.width,h=cvs.height,step=+$("stp").value;
+  const w=cvs.width,h=cvs.height,step=Number($("stp").value);
   await seek(cur/fps);cX.drawImage(vid,0,0,w,h);
   const currPix=cX.getImageData(0,0,w,h).data;
   ctx.clearRect(0,0,w,h);
@@ -105,9 +111,9 @@ if($("fileIn").files&&$("fileIn").files.length)loadVid($("fileIn").files.item(0)
 
 vid.onloadedmetadata=async()=>{try{await vid.play();vid.pause();}catch(e){}tot=Math.max(1,Math.floor(vid.duration*fps));cvs.width=cC.width=oC.width=tC.width=vid.videoWidth;cvs.height=cC.height=oC.height=tC.height=vid.videoHeight;$("scb").max=tot-1;["prv","ply","nxt","scb","expBtn"].forEach(id=>$(id).disabled=false);$("st").textContent="Loaded "+vid.videoWidth+"x"+vid.videoHeight+" ("+tot+" frames)";render(0);};
 $("ply").onclick=()=>{if(playing){clearInterval(tmr);playing=false;$("ply").textContent="Play";render(cur);return;}playing=true;$("ply").textContent="Pause";tmr=setInterval(()=>{if(!busy)render((cur+1)%tot);},1000/fps);};
-$("prv").onclick=()=>{clearInterval(tmr);playing=false;$("ply").textContent="Play";render(cur-+$("stp").value);};
-$("nxt").onclick=()=>{clearInterval(tmr);playing=false;$("ply").textContent="Play";render(cur++$("stp").value);};
-$("scb").oninput=()=>{clearInterval(tmr);playing=false;$("ply").textContent="Play";render(+$("scb").value);};
+$("prv").onclick=()=>{clearInterval(tmr);playing=false;$("ply").textContent="Play";render(cur - Number($("stp").value));};
+$("nxt").onclick=()=>{clearInterval(tmr);playing=false;$("ply").textContent="Play";render(cur + Number($("stp").value));};
+$("scb").oninput=()=>{clearInterval(tmr);playing=false;$("ply").textContent="Play";render(Number($("scb").value));};
 ["mode","stp","thr","gn","oni"].forEach(id=>$(id).oninput=()=>render(cur));
 $("chkBg").onchange=()=>$("wrap").classList.toggle("checker",$("chkBg").checked);
 
