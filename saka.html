@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Sakuga Onion v26</title>
+<title>Sakuga Onion v28</title>
 <script src="https://cloudflare.com"></script>
 <style>
 body{margin:0;padding:12px;background:#121215;color:#f0f0f5;font-family:-apple-system,sans-serif;display:flex;flex-direction:column;gap:10px;max-width:960px;margin-inline:auto}
@@ -22,11 +22,11 @@ video{width:96px;height:54px;background:#000;border-radius:4px}
 </head>
 <body>
 <div class="bar">
-  <b>Sakuga Onion v26 <span class="badge">JS Active</span></b>
+  <b>Sakuga Onion v28 <span class="badge">JS Active</span></b>
   <input type="file" id="fileIn" style="max-width:210px;color:#fff">
 </div>
 <div class="status">
-  <span id="st">Ready (v26)! Pick your .mp4 clip above.</span>
+  <span id="st">Ready (v28)! Pick your .mp4 clip above.</span>
   <button id="expBtn" class="blue" disabled>Export PNGs (.zip)</button>
   <video id="vid" playsinline webkit-playsinline muted preload="auto"></video>
 </div>
@@ -45,9 +45,11 @@ video{width:96px;height:54px;background:#000;border-radius:4px}
     <option value="ink">Ink / Genga (Dark Lines)</option>
   </select></label>
   <label>Step <select id="stp"><option value="1">1f</option><option value="2" selected>2f (Twos)</option><option value="3">3f</option><option value="4">4f</option></select></label>
+  <label>Count <select id="cnt"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option></select></label>
   <label>Cut <input type="range" id="thr" min="5" max="150" value="32"></label>
   <label>Line <input type="range" id="gn" min="0.5" max="4" step="0.1" value="1.8"></label>
   <label><input type="checkbox" id="oni" checked> Onion</label>
+  <label><input type="checkbox" id="shwCur"> Current</label>
   <label><input type="checkbox" id="chkBg"> Grid</label>
 </div>
 <script>
@@ -83,14 +85,20 @@ function extract(srcData,refData,rC,gC,bC,onlyMoving){
 function render(f){
   if(!frames.length)return;
   cur=Math.max(0,Math.min(frames.length-1,f));$("scb").value=cur;$("fnum").textContent=(cur+1)+"/"+frames.length;
-  const w=cvs.width,h=cvs.height,step=Number($("stp").value),md=$("mode").value,currPix=frames.at(cur);
+  const w=cvs.width,h=cvs.height,step=Number($("stp").value),cnt=Number($("cnt").value),md=$("mode").value,currPix=frames.at(cur);
   ctx.globalCompositeOperation="source-over";ctx.globalAlpha=1;ctx.clearRect(0,0,w,h);
   if($("oni").checked){
     const mask=(md==="motionEdge")?currPix:null;
-    if(cur-step>=0){tX.putImageData(extract(frames.at(cur-step),mask,239,68,68,true),0,0);ctx.globalAlpha=.75;ctx.drawImage(tC,0,0);}
-    if(cur+step<frames.length){tX.putImageData(extract(frames.at(cur+step),mask,34,197,94,true),0,0);ctx.globalAlpha=.75;ctx.drawImage(tC,0,0);}
+    for(let k=cnt;k>=1;k--){
+      ctx.globalAlpha=Math.max(0.18,0.85-(k-1)*0.22);
+      if(cur-k*step>=0){tX.putImageData(extract(frames.at(cur-k*step),mask,239,68,68,true),0,0);ctx.drawImage(tC,0,0);}
+      if(cur+k*step<frames.length){tX.putImageData(extract(frames.at(cur+k*step),mask,34,197,94,true),0,0);ctx.drawImage(tC,0,0);}
+    }
   }
   ctx.globalAlpha=1;
+  if($("shwCur").checked){
+    tX.putImageData(extract(currPix,null,15,23,42,false),0,0);ctx.drawImage(tC,0,0);
+  }
 }
 
 async function cacheAllFrames(){
@@ -122,7 +130,7 @@ $("ply").onclick=()=>{if(playing){clearInterval(tmr);playing=false;$("ply").text
 $("prv").onclick=()=>{clearInterval(tmr);playing=false;$("ply").textContent="Play";render(cur-Number($("stp").value));};
 $("nxt").onclick=()=>{clearInterval(tmr);playing=false;$("ply").textContent="Play";render(cur+Number($("stp").value));};
 $("scb").oninput=()=>{clearInterval(tmr);playing=false;$("ply").textContent="Play";render(Number($("scb").value));};
-Array.of("mode","stp","thr","gn","oni").forEach(id=>$(id).oninput=()=>render(cur));
+Array.of("mode","stp","cnt","thr","gn","oni","shwCur").forEach(id=>$(id).oninput=()=>render(cur));
 $("chkBg").onchange=()=>$("wrap").classList.toggle("checker",$("chkBg").checked);
 
 $("expBtn").onclick=async()=>{
