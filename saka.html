@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Sakuga Onion v23</title>
+<title>Sakuga Onion v25</title>
 <script src="https://cloudflare.com"></script>
 <style>
 body{margin:0;padding:12px;background:#121215;color:#f0f0f5;font-family:-apple-system,sans-serif;display:flex;flex-direction:column;gap:10px;max-width:960px;margin-inline:auto}
@@ -22,11 +22,11 @@ video{width:96px;height:54px;background:#000;border-radius:4px}
 </head>
 <body>
 <div class="bar">
-  <b>Sakuga Onion v23 <span class="badge">JS Active</span></b>
+  <b>Sakuga Onion v25 <span class="badge">JS Active</span></b>
   <input type="file" id="fileIn" style="max-width:210px;color:#fff">
 </div>
 <div class="status">
-  <span id="st">Ready (v23)! Pick your .mp4 clip above.</span>
+  <span id="st">Ready (v25)! Pick your .mp4 clip above.</span>
   <button id="expBtn" class="blue" disabled>Export PNGs (.zip)</button>
   <video id="vid" playsinline webkit-playsinline muted preload="auto"></video>
 </div>
@@ -40,17 +40,14 @@ video{width:96px;height:54px;background:#000;border-radius:4px}
 </div>
 <div class="bar">
   <label>Mode <select id="mode">
-    <option value="cleanEdge" selected>Clean Lines (Zero Halo)</option>
-    <option value="motionEdge">Video + Moving Lines</option>
+    <option value="cleanEdge" selected>Clean Lines Only</option>
+    <option value="motionEdge">Video + Moving Outlines</option>
     <option value="ink">Ink / Genga (Dark Lines)</option>
   </select></label>
-  <label>Colors <select id="pal">
-    <option value="rc" selected>Red / Cyan</option>
-    <option value="rg">Red / Green</option>
-  </select></label>
   <label>Step <select id="stp"><option value="1">1f</option><option value="2" selected>2f</option><option value="3">3f</option><option value="4">4f</option></select></label>
-  <label>Cut <input type="range" id="thr" min="5" max="150" value="34"></label>
-  <label>Line <input type="range" id="gn" min="0.5" max="4" step="0.1" value="2.0"></label>
+  <label>Echoes <select id="cnt"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option></select></label>
+  <label>Cut <input type="range" id="thr" min="5" max="150" value="32"></label>
+  <label>Line <input type="range" id="gn" min="0.5" max="4" step="0.1" value="1.8"></label>
   <label><input type="checkbox" id="oni" checked> Onion</label>
   <label><input type="checkbox" id="chkBg"> Grid</label>
 </div>
@@ -59,52 +56,72 @@ const $=id=>document.getElementById(id),cvs=$("cvs"),ctx=cvs.getContext("2d"),vi
 const tC=document.createElement("canvas"),tX=tC.getContext("2d");
 let fps=24,frames=new Array(),cur=0,playing=false,tmr=null;
 
-function extract(srcData,refData,rC,gC,bC,onlyMoving){
+function extract(srcData,refData,rC,gC,bC,onlyMoving,isThick){
   const w=cvs.width,h=cvs.height,out=tX.createImageData(w,h),d=out.data,th=Number($("thr").value),gn=Number($("gn").value),md=$("mode").value;
+  const hit=new Uint8Array(w*h);
   if(md==="ink"){
-    for(let i=0;i<srcData.length;i+=4){
+    for(let i=0,j=0;i<srcData.length;i+=4,j++){
       if(onlyMoving&&refData){
         const df=(Math.abs(srcData.at(i)-refData.at(i))+Math.abs(srcData.at(i+1)-refData.at(i+1))+Math.abs(srcData.at(i+2)-refData.at(i+2)))/3;
-        if(df<22)continue;
+        if(df<18)continue;
       }
       const lum=.299*srcData.at(i)+.587*srcData.at(i+1)+.114*srcData.at(i+2),dark=255-lum;
-      if(dark>th){const a=Math.min(255,Math.pow((dark-th)/40,0.85)*gn*180);d.set(Array.of(rC,gC,bC,a),i);}
+      if(dark>th){
+        if(isThick)hit.set(Array.of(1),j);
+        else d.set(Array.of(rC,gC,bC,Math.min(255,(dark-th)*gn*1.6)),i);
+      }
     }
-    return out;
+  }else{
+    const gr=new Float32Array(w*h);
+    for(let i=0,j=0;i<srcData.length;i+=4,j++)gr.set(Array.of(.299*srcData.at(i)+.587*srcData.at(i+1)+.114*srcData.at(i+2)),j);
+    for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){
+      const i=y*w+x,p=i*4;
+      if(onlyMoving&&refData){
+        const diff=(Math.abs(srcData.at(p)-refData.at(p))+Math.abs(srcData.at(p+1)-refData.at(p+1))+Math.abs(srcData.at(p+2)-refData.at(p+2)))/3;
+        if(diff<18)continue;
+      }
+      const gx=-gr.at(i-w-1)+gr.at(i-w+1)-2*gr.at(i-1)+2*gr.at(i+1)-gr.at(i+w-1)+gr.at(i+w+1);
+      const gy=-gr.at(i-w-1)-2*gr.at(i-w)-gr.at(i-w+1)+gr.at(i+w-1)+2*gr.at(i+w)+gr.at(i+w+1);
+      const mg=Math.hypot(gx,gy)*.25;
+      if(mg>th){
+        if(isThick)hit.set(Array.of(1),i);
+        else d.set(Array.of(rC,gC,bC,Math.min(255,(mg-th)*gn*2.2)),p);
+      }
+    }
   }
-  const gr=new Float32Array(w*h);
-  for(let i=0,j=0;i<srcData.length;i+=4,j++)gr.set(Array.of(.299*srcData.at(i)+.587*srcData.at(i+1)+.114*srcData.at(i+2)),j);
-  for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){
-    const i=y*w+x,p=i*4;
-    if(onlyMoving&&refData){
-      const diff=(Math.abs(srcData.at(p)-refData.at(p))+Math.abs(srcData.at(p+1)-refData.at(p+1))+Math.abs(srcData.at(p+2)-refData.at(p+2)))/3;
-      if(diff<22)continue;
+  if(isThick){
+    for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){
+      const i=y*w+x;
+      if(hit.at(i)||hit.at(i-1)||hit.at(i+1)||hit.at(i-w)||hit.at(i+w)||hit.at(i-w-1)||hit.at(i-w+1)||hit.at(i+w-1)||hit.at(i+w+1)){
+        d.set(Array.of(rC,gC,bC,255),i*4);
+      }
     }
-    const gx=-gr.at(i-w-1)+gr.at(i-w+1)-2*gr.at(i-1)+2*gr.at(i+1)-gr.at(i+w-1)+gr.at(i+w+1);
-    const gy=-gr.at(i-w-1)-2*gr.at(i-w)-gr.at(i-w+1)+gr.at(i+w-1)+2*gr.at(i+w)+gr.at(i+w+1);
-    const mg=Math.hypot(gx,gy)*.25;
-    if(mg>th){const a=Math.min(255,Math.pow((mg-th)/35,0.8)*gn*210);d.set(Array.of(rC,gC,bC,a),p);}
   }
   return out;
+}
+
+function drawOnions(currPix,step){
+  const cnt=Number($("cnt").value);
+  for(let k=cnt;k>=1;k--){
+    const op=k===1?0.95:Math.max(0.25,0.95-(k-1)*0.35);
+    ctx.globalAlpha=op;
+    if(cur-k*step>=0){tX.putImageData(extract(frames.at(cur-k*step),currPix,239,68,68,true,true),0,0);ctx.drawImage(tC,0,0);}
+    if(cur+k*step<frames.length){tX.putImageData(extract(frames.at(cur+k*step),currPix,34,197,94,true,true),0,0);ctx.drawImage(tC,0,0);}
+  }
+  ctx.globalAlpha=1;
 }
 
 function render(f){
   if(!frames.length)return;
   cur=Math.max(0,Math.min(frames.length-1,f));$("scb").value=cur;$("fnum").textContent=(cur+1)+"/"+frames.length;
-  const w=cvs.width,h=cvs.height,step=Number($("stp").value),md=$("mode").value,currPix=frames.at(cur),isRC=$("pal").value==="rc";
+  const w=cvs.width,h=cvs.height,step=Number($("stp").value),md=$("mode").value,currPix=frames.at(cur);
   ctx.globalCompositeOperation="source-over";ctx.globalAlpha=1;ctx.clearRect(0,0,w,h);
-  if($("oni").checked&&!playing){
-    if(cur-step>=0){tX.putImageData(extract(frames.at(cur-step),currPix,244,63,94,true),0,0);ctx.globalAlpha=.75;ctx.drawImage(tC,0,0);}
-    if(cur+step<frames.length){
-      const nr=isRC?14:34,ng=isRC?165:197,nb=isRC?233:94;
-      tX.putImageData(extract(frames.at(cur+step),currPix,nr,ng,nb,true),0,0);ctx.globalAlpha=.75;ctx.drawImage(tC,0,0);
-    }
-  }
-  ctx.globalAlpha=1;
   if(md==="motionEdge"){
     tX.putImageData(new ImageData(currPix,w,h),0,0);ctx.drawImage(tC,0,0);
+    if($("oni").checked&&!playing)drawOnions(currPix,step);
   }else{
-    tX.putImageData(extract(currPix,null,10,10,12,false),0,0);ctx.drawImage(tC,0,0);
+    if($("oni").checked&&!playing)drawOnions(currPix,step);
+    tX.putImageData(extract(currPix,null,15,23,42,false,false),0,0);ctx.drawImage(tC,0,0);
   }
 }
 
@@ -137,7 +154,7 @@ $("ply").onclick=()=>{if(playing){clearInterval(tmr);playing=false;$("ply").text
 $("prv").onclick=()=>{clearInterval(tmr);playing=false;$("ply").textContent="Play";render(cur-Number($("stp").value));};
 $("nxt").onclick=()=>{clearInterval(tmr);playing=false;$("ply").textContent="Play";render(cur+Number($("stp").value));};
 $("scb").oninput=()=>{clearInterval(tmr);playing=false;$("ply").textContent="Play";render(Number($("scb").value));};
-Array.of("mode","pal","stp","thr","gn","oni").forEach(id=>$(id).oninput=()=>render(cur));
+Array.of("mode","stp","cnt","thr","gn","oni").forEach(id=>$(id).oninput=()=>render(cur));
 $("chkBg").onchange=()=>$("wrap").classList.toggle("checker",$("chkBg").checked);
 
 $("expBtn").onclick=async()=>{
@@ -145,7 +162,7 @@ $("expBtn").onclick=async()=>{
   const zip=new JSZip(),fld=zip.folder("sakuga_lines");
   for(let i=0;i<frames.length;i++){
     $("st").textContent="Exporting "+(i+1)+"/"+frames.length+"...";
-    tX.putImageData(extract(frames.at(i),null,0,0,0,false),0,0);
+    tX.putImageData(extract(frames.at(i),null,0,0,0,false,false),0,0);
     const b=await new Promise(r=>tC.toBlob(r,"image/png"));fld.file("frame_"+String(i+1).padStart(4,"0")+".png",b);
   }
   $("st").textContent="Zipping...";const zb=await zip.generateAsync({type:"blob"}),a=document.createElement("a");
